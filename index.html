@@ -50,24 +50,18 @@
         <textarea id="css" placeholder="CSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
-    <iframe id="preview" name="preview"></iframe>
-    <form id="form" target="preview" method="POST" style="display:none;">
-        <textarea name="html"></textarea>
-        <textarea name="css"></textarea>
-        <textarea name="js"></textarea>
-    </form>
+    <iframe id="preview" name="preview" sandbox="allow-scripts"></iframe>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js"></script>
     <script>
         const htmlEditor = document.getElementById('html');
         const cssEditor = document.getElementById('css');
         const jsEditor = document.getElementById('js');
         const jsPreprocessor = document.getElementById('js-preprocessor');
-        const form = document.getElementById('form');
         const previewFrame = document.getElementById('preview');
 
         function updatePreview() {
             const html = htmlEditor.value;
-            const css = cssEditor.value;
+            const css = `<style>${cssEditor.value}</style>`;
             let jsContent = jsEditor.value;
 
             if (jsPreprocessor.value === 'typescript') {
@@ -79,11 +73,28 @@
                 }
             }
 
-            form.elements['html'].value = html;
-            form.elements['css'].value = css;
-            form.elements['js'].value = jsContent;
+            const js = `<script>${jsContent}\<\/script>`;
 
-            form.submit();
+            const completeContent = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Preview</title>
+                    ${css}
+                </head>
+                <body>
+                    ${html}
+                    ${js}
+                </body>
+                </html>
+            `;
+
+            const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            previewDocument.open();
+            previewDocument.write(completeContent);
+            previewDocument.close();
         }
 
         htmlEditor.addEventListener('input', updatePreview);
