@@ -52,24 +52,61 @@
             <option value="none">None</option>
             <option value="typescript">TypeScript</option>
         </select>
+        <label for="css-preprocessor">CSS Preprocessor:</label>
+        <select id="css-preprocessor">
+            <option value="none">None</option>
+            <option value="scss">SCSS</option>
+        </select>
     </div>
     <div id="editor">
         <textarea id="html" placeholder="HTML"></textarea>
-        <textarea id="css" placeholder="CSS"></textarea>
+        <textarea id="css" placeholder="CSS/SCSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
     <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const htmlEditor = document.getElementById('html');
             const cssEditor = document.getElementById('css');
             const jsEditor = document.getElementById('js');
             const jsPreprocessor = document.getElementById('js-preprocessor');
+            const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
+
+            let typeScriptLoaded = false;
+            let scssLoaded = false;
+
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
+            }
+
+            function loadTypeScript() {
+                if (!typeScriptLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
+                        typeScriptLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function loadSCSS() {
+                if (!scssLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
+                        scssLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
 
             function getTranspiledJs(jsCode) {
                 if (jsPreprocessor.value === 'typescript') {
+                    if (!typeScriptLoaded) {
+                        loadTypeScript();
+                        return '';
+                    }
                     try {
                         return ts.transpile(jsCode);
                     } catch (e) {
@@ -80,9 +117,32 @@
                 return jsCode;
             }
 
+            function getTranspiledCss(cssCode) {
+                if (cssPreprocessor.value === 'scss') {
+                    if (!scssLoaded) {
+                        loadSCSS();
+                        return '';
+                    }
+                    try {
+                        let result;
+                        Sass.compile(cssCode, (res) => result = res);
+                        if (result.status === 0) {
+                            return result.text;
+                        } else {
+                            console.error('SCSS transpilation error:', result.formatted);
+                            return `/* SCSS transpilation error: ${result.formatted} */`;
+                        }
+                    } catch (e) {
+                        console.error('SCSS transpilation error:', e);
+                        return `/* SCSS transpilation error: ${e.message} */`;
+                    }
+                }
+                return cssCode;
+            }
+
             function updatePreview() {
                 const html = htmlEditor.value;
-                const css = `<style>${cssEditor.value}</style>`;
+                const css = `<style>${getTranspiledCss(cssEditor.value)}</style>`;
                 const jsContent = getTranspiledJs(jsEditor.value);
                 const js = `<script>${jsContent}\<\/script>`;
 
@@ -108,7 +168,7 @@
                 previewDocument.close();
             }
 
-            [htmlEditor, cssEditor, jsEditor, jsPreprocessor].forEach(element => {
+            [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
                 element.addEventListener('input', updatePreview);
                 element.addEventListener('change', updatePreview);
             });
