@@ -32,26 +32,52 @@
             height: 500px;
             border: 1px solid #ccc;
         }
+        #controls {
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <div id="controls">
+        <label for="js-preprocessor">JavaScript Preprocessor:</label>
+        <select id="js-preprocessor">
+            <option value="none">None</option>
+            <option value="typescript">TypeScript</option>
+        </select>
+    </div>
     <div id="editor">
         <textarea id="html" placeholder="HTML"></textarea>
         <textarea id="css" placeholder="CSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
     <iframe id="preview"></iframe>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js"></script>
     <script>
         const htmlEditor = document.getElementById('html');
         const cssEditor = document.getElementById('css');
         const jsEditor = document.getElementById('js');
         const previewFrame = document.getElementById('preview');
+        const jsPreprocessor = document.getElementById('js-preprocessor');
 
         function updatePreview() {
             const html = htmlEditor.value;
             const css = `<style>${cssEditor.value}</style>`;
-            const js = `<script>${jsEditor.value}\<\/script>`;
+            const jsContent = jsEditor.value;
 
+            let js;
+
+            if (jsPreprocessor.value === 'typescript') {
+                try {
+                    js = ts.transpile(jsContent);
+                } catch (e) {
+                    console.error('TypeScript transpilation error:', e);
+                    js = `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                }
+            } else {
+                js = jsContent;
+            }
+
+            const jsScript = `<script>${js}\<\/script>`;
             const completeContent = `
                 <!DOCTYPE html>
                 <html lang="en">
@@ -63,7 +89,7 @@
                 </head>
                 <body>
                     ${html}
-                    ${js}
+                    ${jsScript}
                 </body>
                 </html>
             `;
@@ -77,6 +103,7 @@
         htmlEditor.addEventListener('input', updatePreview);
         cssEditor.addEventListener('input', updatePreview);
         jsEditor.addEventListener('input', updatePreview);
+        jsPreprocessor.addEventListener('change', updatePreview);
 
         // Initial call to display content on page load
         updatePreview();
