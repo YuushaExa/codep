@@ -123,26 +123,23 @@
                         loadSCSS();
                         return '';
                     }
-                    try {
-                        let result;
-                        Sass.compile(cssCode, (res) => result = res);
-                        if (result.status === 0) {
-                            return result.text;
-                        } else {
-                            console.error('SCSS transpilation error:', result.formatted);
-                            return `/* SCSS transpilation error: ${result.formatted} */`;
-                        }
-                    } catch (e) {
-                        console.error('SCSS transpilation error:', e);
-                        return `/* SCSS transpilation error: ${e.message} */`;
-                    }
+                    return new Promise((resolve, reject) => {
+                        Sass.compile(cssCode, (result) => {
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
                 }
-                return cssCode;
+                return Promise.resolve(cssCode);
             }
 
-            function updatePreview() {
+            async function updatePreview() {
                 const html = htmlEditor.value;
-                const css = `<style>${getTranspiledCss(cssEditor.value)}</style>`;
+                const css = `<style>${await getTranspiledCss(cssEditor.value)}</style>`;
                 const jsContent = getTranspiledJs(jsEditor.value);
                 const js = `<script>${jsContent}\<\/script>`;
 
