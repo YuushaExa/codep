@@ -12,6 +12,7 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
         }
         #editor {
             display: flex;
@@ -26,14 +27,21 @@
             padding: 10px;
             box-sizing: border-box;
             font-family: monospace;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            resize: none;
         }
         iframe {
             width: 100%;
             height: 500px;
             border: 1px solid #ccc;
+            background-color: #fff;
         }
         #controls {
             margin-bottom: 20px;
+        }
+        #controls label, #controls select {
+            font-size: 16px;
         }
     </style>
 </head>
@@ -50,60 +58,64 @@
         <textarea id="css" placeholder="CSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
-    <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe " loading="lazy"></iframe>
+    <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js"></script>
     <script>
-        const htmlEditor = document.getElementById('html');
-        const cssEditor = document.getElementById('css');
-        const jsEditor = document.getElementById('js');
-        const jsPreprocessor = document.getElementById('js-preprocessor');
-        const previewFrame = document.getElementById('preview');
+        document.addEventListener('DOMContentLoaded', () => {
+            const htmlEditor = document.getElementById('html');
+            const cssEditor = document.getElementById('css');
+            const jsEditor = document.getElementById('js');
+            const jsPreprocessor = document.getElementById('js-preprocessor');
+            const previewFrame = document.getElementById('preview');
 
-        function updatePreview() {
-            const html = htmlEditor.value;
-            const css = `<style>${cssEditor.value}</style>`;
-            let jsContent = jsEditor.value;
-
-            if (jsPreprocessor.value === 'typescript') {
-                try {
-                    jsContent = ts.transpile(jsContent);
-                } catch (e) {
-                    console.error('TypeScript transpilation error:', e);
-                    jsContent = `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+            function getTranspiledJs(jsCode) {
+                if (jsPreprocessor.value === 'typescript') {
+                    try {
+                        return ts.transpile(jsCode);
+                    } catch (e) {
+                        console.error('TypeScript transpilation error:', e);
+                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    }
                 }
+                return jsCode;
             }
 
-            const js = `<script>${jsContent}\<\/script>`;
+            function updatePreview() {
+                const html = htmlEditor.value;
+                const css = `<style>${cssEditor.value}</style>`;
+                const jsContent = getTranspiledJs(jsEditor.value);
+                const js = `<script>${jsContent}\<\/script>`;
 
-            const completeContent = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Preview</title>
-                    ${css}
-                </head>
-                <body>
-                    ${html}
-                    ${js}
-                </body>
-                </html>
-            `;
+                const completeContent = `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
 
-            const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            previewDocument.open();
-            previewDocument.write(completeContent);
-            previewDocument.close();
-        }
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(completeContent);
+                previewDocument.close();
+            }
 
-        htmlEditor.addEventListener('input', updatePreview);
-        cssEditor.addEventListener('input', updatePreview);
-        jsEditor.addEventListener('input', updatePreview);
-        jsPreprocessor.addEventListener('change', updatePreview);
+            [htmlEditor, cssEditor, jsEditor, jsPreprocessor].forEach(element => {
+                element.addEventListener('input', updatePreview);
+                element.addEventListener('change', updatePreview);
+            });
 
-        // Initial call to display content on page load
-        updatePreview();
+            // Initial call to display content on page load
+            updatePreview();
+        });
     </script>
 </body>
 </html>
