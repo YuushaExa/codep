@@ -50,54 +50,40 @@
         <textarea id="css" placeholder="CSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
-    <iframe id="preview"></iframe>
+    <iframe id="preview" name="preview"></iframe>
+    <form id="form" target="preview" method="POST" style="display:none;">
+        <textarea name="html"></textarea>
+        <textarea name="css"></textarea>
+        <textarea name="js"></textarea>
+    </form>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js"></script>
     <script>
         const htmlEditor = document.getElementById('html');
         const cssEditor = document.getElementById('css');
         const jsEditor = document.getElementById('js');
-        const previewFrame = document.getElementById('preview');
         const jsPreprocessor = document.getElementById('js-preprocessor');
+        const form = document.getElementById('form');
+        const previewFrame = document.getElementById('preview');
 
         function updatePreview() {
             const html = htmlEditor.value;
-            const css = `<style>${cssEditor.value}</style>`;
-            const jsContent = jsEditor.value;
-
-            let js;
+            const css = cssEditor.value;
+            let jsContent = jsEditor.value;
 
             if (jsPreprocessor.value === 'typescript') {
                 try {
-                    js = ts.transpile(jsContent);
+                    jsContent = ts.transpile(jsContent);
                 } catch (e) {
                     console.error('TypeScript transpilation error:', e);
-                    js = `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    jsContent = `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
                 }
-            } else {
-                js = jsContent;
             }
 
-            const jsScript = `<script>${js}\<\/script>`;
-            const completeContent = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Preview</title>
-                    ${css}
-                </head>
-                <body>
-                    ${html}
-                    ${jsScript}
-                </body>
-                </html>
-            `;
+            form.elements['html'].value = html;
+            form.elements['css'].value = css;
+            form.elements['js'].value = jsContent;
 
-            const blob = new Blob([completeContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-
-            previewFrame.src = url;
+            form.submit();
         }
 
         htmlEditor.addEventListener('input', updatePreview);
