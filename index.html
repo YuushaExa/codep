@@ -50,10 +50,28 @@
         function updatePreview() {
             const html = htmlEditor.value;
             const css = `<style>${cssEditor.value}</style>`;
-            const js = `<script>${jsEditor.value}<\/script>`;
-            const srcdoc = html + css + js;
+            const js = `<script>${jsEditor.value}\<\/script>`;
 
-            previewFrame.srcdoc = srcdoc;
+            const completeContent = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Preview</title>
+                    ${css}
+                </head>
+                <body>
+                    ${html}
+                    ${js}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([completeContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+
+            previewFrame.src = url;
         }
 
         htmlEditor.addEventListener('input', updatePreview);
