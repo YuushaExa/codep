@@ -51,10 +51,11 @@
             const html = htmlEditor.value;
             const css = `<style>${cssEditor.value}</style>`;
             const js = `<script>${jsEditor.value}<\/script>`;
-            const preview = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            preview.open();
-            preview.write(html + css + js);
-            preview.close();
+
+            const blob = new Blob([html + css + js], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+
+            previewFrame.src = url;
         }
 
         htmlEditor.addEventListener('input', updatePreview);
