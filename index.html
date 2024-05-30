@@ -59,7 +59,6 @@
             <option value="scss">SCSS</option>
         </select>
         <button id="preview-button">Preview</button>
-        <button id="webpreview-button">WebPreview</button>
     </div>
     <div id="editor">
         <textarea id="html" placeholder="HTML"></textarea>
@@ -76,7 +75,6 @@
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
-            const webpreviewButton = document.getElementById('webpreview-button');
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -182,52 +180,12 @@
                 newWindow.document.close();
             }
 
-            async function shareWebPreview() {
-                // Load the WebContainer API script
-                loadScript("https://webcontainers.io/api.js", async () => {
-                    const { WebContainer } = await window.webcontainer;
-                    const webcontainer = await WebContainer.boot();
-                    
-                    const project = {
-                        files: {
-                            'index.html': {
-                                file: {
-                                    contents: await generatePreviewContent()
-                                }
-                            },
-                            'package.json': {
-                                file: {
-                                    contents: JSON.stringify({
-                                        dependencies: {}
-                                    }, null, 2)
-                                }
-                            }
-                        }
-                    };
-
-                    await webcontainer.mount(project);
-
-                    const process = await webcontainer.spawn('npm', ['start']);
-                    process.output.pipeTo(new WritableStream({
-                        write(data) {
-                            console.log(data);
-                        }
-                    }));
-
-                    const server = await webcontainer.run('python', ['-m', 'http.server']);
-                    const url = await server.getUrl();
-
-                    window.open(url);
-                });
-            }
-
             [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
                 element.addEventListener('input', updatePreview);
                 element.addEventListener('change', updatePreview);
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
-            webpreviewButton.addEventListener('click', shareWebPreview);
 
             // Initial call to display content on page load
             updatePreview();
