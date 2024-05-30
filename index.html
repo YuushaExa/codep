@@ -184,7 +184,7 @@
 
             async function webPreview() {
                 const completeContent = await generatePreviewContent();
-                fetch('http://localhost:3000/preview', {
+                fetch('https://advancedcodep.vercel.app/preview', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
