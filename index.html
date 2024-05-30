@@ -4,212 +4,234 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSFiddle Clone</title>
-         <style>
-            body {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f5f5f5;
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        #editor {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 33%;
+            height: 300px;
+            margin: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            resize: none;
+        }
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        #controls label, #controls select, #controls button {
+            font-size: 16px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="js-preprocessor">JavaScript Preprocessor:</label>
+        <select id="js-preprocessor">
+            <option value="none">None</option>
+            <option value="typescript">TypeScript</option>
+        </select>
+        <label for="css-preprocessor">CSS Preprocessor:</label>
+        <select id="css-preprocessor">
+            <option value="none">None</option>
+            <option value="scss">SCSS</option>
+        </select>
+        <button id="preview-button">Preview</button>
+        <button id="webpreview-button">WebPreview</button>
+    </div>
+    <div id="editor">
+        <textarea id="html" placeholder="HTML"></textarea>
+        <textarea id="css" placeholder="CSS/SCSS"></textarea>
+        <textarea id="js" placeholder="JavaScript"></textarea>
+    </div>
+    <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const htmlEditor = document.getElementById('html');
+            const cssEditor = document.getElementById('css');
+            const jsEditor = document.getElementById('js');
+            const jsPreprocessor = document.getElementById('js-preprocessor');
+            const cssPreprocessor = document.getElementById('css-preprocessor');
+            const previewFrame = document.getElementById('preview');
+            const previewButton = document.getElementById('preview-button');
+            const webpreviewButton = document.getElementById('webpreview-button');
+
+            let typeScriptLoaded = false;
+            let scssLoaded = false;
+
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
             }
-            #editor {
-                display: flex;
-                width: 100%;
-                max-width: 1200px;
-                margin-bottom: 20px;
-            }
-            textarea {
-                width: 33%;
-                height: 300px;
-                margin: 5px;
-                padding: 10px;
-                box-sizing: border-box;
-                font-family: monospace;
-                border: 1px solid #ccc;
-                background-color: #fff;
-                resize: none;
-            }
-            iframe {
-                width: 100%;
-                height: 500px;
-                border: 1px solid #ccc;
-                background-color: #fff;
-            }
-            #controls {
-                margin-bottom: 20px;
-            }
-            #controls label, #controls select, #controls button {
-                font-size: 16px;
-                margin: 5px;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="controls">
-            <label for="js-preprocessor">JavaScript Preprocessor:</label>
-            <select id="js-preprocessor">
-                <option value="none">None</option>
-                <option value="typescript">TypeScript</option>
-            </select>
-            <label for="css-preprocessor">CSS Preprocessor:</label>
-            <select id="css-preprocessor">
-                <option value="none">None</option>
-                <option value="scss">SCSS</option>
-            </select>
-            <button id="preview-button">Preview</button>
-            <button id="web-preview-button">WebPreview</button>
-        </div>
-        <div id="editor">
-            <textarea id="html" placeholder="HTML"></textarea>
-            <textarea id="css" placeholder="CSS/SCSS"></textarea>
-            <textarea id="js" placeholder="JavaScript"></textarea>
-        </div>
-        <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const htmlEditor = document.getElementById('html');
-                const cssEditor = document.getElementById('css');
-                const jsEditor = document.getElementById('js');
-                const jsPreprocessor = document.getElementById('js-preprocessor');
-                const cssPreprocessor = document.getElementById('css-preprocessor');
-                const previewFrame = document.getElementById('preview');
-                const previewButton = document.getElementById('preview-button');
-                const webPreviewButton = document.getElementById('web-preview-button');
 
-                let typeScriptLoaded = false;
-                let scssLoaded = false;
-
-                function loadScript(src, callback) {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.onload = callback;
-                    document.head.appendChild(script);
-                }
-
-                function loadTypeScript() {
-                    if (!typeScriptLoaded) {
-                        loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
-                            typeScriptLoaded = true;
-                            updatePreview();
-                        });
-                    }
-                }
-
-                function loadSCSS() {
-                    if (!scssLoaded) {
-                        loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
-                            scssLoaded = true;
-                            updatePreview();
-                        });
-                    }
-                }
-
-                function getTranspiledJs(jsCode) {
-                    if (jsPreprocessor.value === 'typescript') {
-                        if (!typeScriptLoaded) {
-                            loadTypeScript();
-                            return '';
-                        }
-                        try {
-                            return ts.transpile(jsCode);
-                        } catch (e) {
-                            console.error('TypeScript transpilation error:', e);
-                            return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
-                        }
-                    }
-                    return jsCode;
-                }
-
-                function getTranspiledCss(cssCode) {
-                    if (cssPreprocessor.value === 'scss') {
-                        if (!scssLoaded) {
-                            loadSCSS();
-                            return '';
-                        }
-                        return new Promise((resolve, reject) => {
-                            Sass.compile(cssCode, (result) => {
-                                if (result.status === 0) {
-                                    resolve(result.text);
-                                } else {
-                                    console.error('SCSS transpilation error:', result.formatted);
-                                    resolve(`/* SCSS transpilation error: ${result.formatted} */`);
-                                }
-                            });
-                        });
-                    }
-                    return Promise.resolve(cssCode);
-                }
-
-                async function generatePreviewContent() {
-                    const html = htmlEditor.value;
-                    const css = `<style>${await getTranspiledCss(cssEditor.value)}</style>`;
-                    const jsContent = getTranspiledJs(jsEditor.value);
-                    const js = `<script>${jsContent}\<\/script>`;
-
-                    return `
-                        <!DOCTYPE html>
-                        <html lang="en">
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <title>Preview</title>
-                            ${css}
-                        </head>
-                        <body>
-                            ${html}
-                            ${js}
-                        </body>
-                        </html>
-                    `;
-                }
-
-                async function updatePreview() {
-                    const completeContent = await generatePreviewContent();
-
-                    const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                    previewDocument.open();
-                    previewDocument.write(completeContent);
-                    previewDocument.close();
-                }
-
-                async function openPreviewInNewTab() {
-                    const completeContent = await generatePreviewContent();
-                    const newWindow = window.open();
-                    newWindow.document.open();
-                    newWindow.document.write(completeContent);
-                    newWindow.document.close();
-                }
-
-                async function openWebPreview() {
-                    const html = htmlEditor.value;
-                    const css = await getTranspiledCss(cssEditor.value);
-                    const js = getTranspiledJs(jsEditor.value);
-
-                    const response = await fetch('http://localhost:3000/preview', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ html, css, js })
+            function loadTypeScript() {
+                if (!typeScriptLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
+                        typeScriptLoaded = true;
+                        updatePreview();
                     });
-
-                    const result = await response.json();
-                    window.open(result.url, '_blank');
                 }
+            }
 
-                [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
-                    element.addEventListener('input', updatePreview);
-                    element.addEventListener('change', updatePreview);
+            function loadSCSS() {
+                if (!scssLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
+                        scssLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function getTranspiledJs(jsCode) {
+                if (jsPreprocessor.value === 'typescript') {
+                    if (!typeScriptLoaded) {
+                        loadTypeScript();
+                        return '';
+                    }
+                    try {
+                        return ts.transpile(jsCode);
+                    } catch (e) {
+                        console.error('TypeScript transpilation error:', e);
+                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    }
+                }
+                return jsCode;
+            }
+
+            function getTranspiledCss(cssCode) {
+                if (cssPreprocessor.value === 'scss') {
+                    if (!scssLoaded) {
+                        loadSCSS();
+                        return '';
+                    }
+                    return new Promise((resolve, reject) => {
+                        Sass.compile(cssCode, (result) => {
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
+                }
+                return Promise.resolve(cssCode);
+            }
+
+            async function generatePreviewContent() {
+                const html = htmlEditor.value;
+                const css = `<style>${await getTranspiledCss(cssEditor.value)}</style>`;
+                const jsContent = getTranspiledJs(jsEditor.value);
+                const js = `<script>${jsContent}\<\/script>`;
+
+                return `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+            }
+
+            async function updatePreview() {
+                const completeContent = await generatePreviewContent();
+
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(completeContent);
+                previewDocument.close();
+            }
+
+            async function openPreviewInNewTab() {
+                const completeContent = await generatePreviewContent();
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(completeContent);
+                newWindow.document.close();
+            }
+
+            async function shareWebPreview() {
+                // Load the WebContainer API script
+                loadScript("https://webcontainers.io/api.js", async () => {
+                    const { WebContainer } = await window.webcontainer;
+                    const webcontainer = await WebContainer.boot();
+                    
+                    const project = {
+                        files: {
+                            'index.html': {
+                                file: {
+                                    contents: await generatePreviewContent()
+                                }
+                            },
+                            'package.json': {
+                                file: {
+                                    contents: JSON.stringify({
+                                        dependencies: {}
+                                    }, null, 2)
+                                }
+                            }
+                        }
+                    };
+
+                    await webcontainer.mount(project);
+
+                    const process = await webcontainer.spawn('npm', ['start']);
+                    process.output.pipeTo(new WritableStream({
+                        write(data) {
+                            console.log(data);
+                        }
+                    }));
+
+                    const server = await webcontainer.run('python', ['-m', 'http.server']);
+                    const url = await server.getUrl();
+
+                    window.open(url);
                 });
+            }
 
-                previewButton.addEventListener('click', openPreviewInNewTab);
-                webPreviewButton.addEventListener('click', openWebPreview);
-
-                // Initial call to display content on page load
-                updatePreview();
+            [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
+                element.addEventListener('input', updatePreview);
+                element.addEventListener('change', updatePreview);
             });
-        </script>
-    </body>
-    </html>
+
+            previewButton.addEventListener('click', openPreviewInNewTab);
+            webpreviewButton.addEventListener('click', shareWebPreview);
+
+            // Initial call to display content on page load
+            updatePreview();
+        });
+    </script>
+</body>
+</html>
