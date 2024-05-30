@@ -38,15 +38,15 @@
             background-color: #444;
         }
         #editor {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            width: 100%;
+            padding: 10px;
         }
         textarea {
             width: 100%;
             height: 300px;
-            margin-bottom: 20px;
+            margin: 5px 0;
             padding: 10px;
             box-sizing: border-box;
             font-family: monospace;
@@ -60,87 +60,178 @@
             border: 1px solid #ccc;
             background-color: #fff;
         }
+        #controls {
+            margin-bottom: 20px;
+        }
+        #controls label, #controls select, #controls button {
+            font-size: 16px;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul id="file-list"></ul>
-        <button onclick="createFile()">New File</button>
+        <ul>
+            <li data-file="html">index.html</li>
+            <li data-file="css">style.css</li>
+            <li data-file="js">script.js</li>
+        </ul>
     </div>
     <div id="editor">
-        <textarea id="file-content" placeholder="File content"></textarea>
-        <iframe id="preview" name="preview"></iframe>
+        <div id="controls">
+            <label for="js-preprocessor">JavaScript Preprocessor:</label>
+            <select id="js-preprocessor">
+                <option value="none">None</option>
+                <option value="typescript">TypeScript</option>
+            </select>
+            <label for="css-preprocessor">CSS Preprocessor:</label>
+            <select id="css-preprocessor">
+                <option value="none">None</option>
+                <option value="scss">SCSS</option>
+            </select>
+            <button id="preview-button">Preview</button>
+        </div>
+        <textarea id="file-content" placeholder="File content will appear here..."></textarea>
+        <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
     <script>
-        let files = {
-            'index.html': `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview</title>
-    <link href="style.css" rel="stylesheet">
-</head>
-<body>
-    Hello world
-    <script src="script.js"></script>
-</body>
-</html>`,
-            'style.css': 'body { font-family: Arial, sans-serif; }',
-            'script.js': 'console.log("Hello World");'
-        };
-        let currentFile = 'index.html';
-
         document.addEventListener('DOMContentLoaded', () => {
-            const fileList = document.getElementById('file-list');
+            const files = {
+                html: '',
+                css: '',
+                js: ''
+            };
+
             const fileContentEditor = document.getElementById('file-content');
+            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const jsPreprocessor = document.getElementById('js-preprocessor');
+            const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
+            const previewButton = document.getElementById('preview-button');
 
-            function renderFileList() {
-                fileList.innerHTML = '';
-                for (let fileName in files) {
-                    const li = document.createElement('li');
-                    li.textContent = fileName;
-                    li.onclick = () => openFile(fileName);
-                    fileList.appendChild(li);
-                }
-            }
+            let currentFile = 'html';
 
-            function openFile(fileName) {
-                currentFile = fileName;
-                fileContentEditor.value = files[fileName];
-                updatePreview();
-            }
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentFile = item.getAttribute('data-file');
+                    fileContentEditor.value = files[currentFile];
+                });
+            });
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
                 updatePreview();
             });
 
-            function generatePreviewContent() {
-                return files['index.html'];
+            previewButton.addEventListener('click', openPreviewInNewTab);
+
+            let typeScriptLoaded = false;
+            let scssLoaded = false;
+
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
             }
 
-            function updatePreview() {
+            function loadTypeScript() {
+                if (!typeScriptLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
+                        typeScriptLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function loadSCSS() {
+                if (!scssLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
+                        scssLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function getTranspiledJs(jsCode) {
+                if (jsPreprocessor.value === 'typescript') {
+                    if (!typeScriptLoaded) {
+                        loadTypeScript();
+                        return '';
+                    }
+                    try {
+                        return ts.transpile(jsCode);
+                    } catch (e) {
+                        console.error('TypeScript transpilation error:', e);
+                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    }
+                }
+                return jsCode;
+            }
+
+            function getTranspiledCss(cssCode) {
+                if (cssPreprocessor.value === 'scss') {
+                    if (!scssLoaded) {
+                        loadSCSS();
+                        return '';
+                    }
+                    return new Promise((resolve, reject) => {
+                        Sass.compile(cssCode, (result) => {
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
+                }
+                return Promise.resolve(cssCode);
+            }
+
+            async function generatePreviewContent() {
+                const html = files.html;
+                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
+                const jsContent = getTranspiledJs(files.js);
+                const js = `<script>${jsContent}\<\/script>`;
+
+                return `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+            }
+
+            async function updatePreview() {
+                const completeContent = await generatePreviewContent();
+
                 const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
                 previewDocument.open();
-                previewDocument.write(generatePreviewContent());
+                previewDocument.write(completeContent);
                 previewDocument.close();
             }
 
-            window.createFile = function () {
-                const fileName = prompt('Enter the new file name (with extension):');
-                if (fileName && !files[fileName]) {
-                    files[fileName] = '';
-                    renderFileList();
-                } else if (files[fileName]) {
-                    alert('File already exists.');
-                }
-            };
+            async function openPreviewInNewTab() {
+                const completeContent = await generatePreviewContent();
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(completeContent);
+                newWindow.document.close();
+            }
 
-            renderFileList();
-            openFile('index.html');
+            // Initial call to display content on page load
+            updatePreview();
         });
     </script>
 </body>
