@@ -33,44 +33,20 @@
         #sidebar li {
             padding: 10px;
             cursor: pointer;
-            display: flex;
-            justify-content: space-between;
         }
         #sidebar li:hover {
             background-color: #444;
         }
-        #sidebar li input {
-            background: none;
-            border: none;
-            color: #fff;
-            width: 80%;
-            font-size: 14px;
-        }
-        #sidebar li input:focus {
-            outline: none;
-        }
-        #controls {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        #controls label, #controls select, #controls button {
-            font-size: 16px;
-            margin: 5px;
-        }
-        #controls button {
-            padding: 5px 10px;
-        }
         #editor {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            width: 100%;
-            padding: 10px;
+            padding: 20px;
         }
         textarea {
             width: 100%;
             height: 300px;
-            margin: 5px 0;
+            margin-bottom: 20px;
             padding: 10px;
             box-sizing: border-box;
             font-family: monospace;
@@ -89,217 +65,82 @@
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul id="file-list">
-            <li data-file="html"><input value="index.html" readonly><button onclick="deleteFile('html')">Delete</button></li>
-            <li data-file="css"><input value="style.css" readonly><button onclick="deleteFile('css')">Delete</button></li>
-            <li data-file="js"><input value="script.js" readonly><button onclick="deleteFile('js')">Delete</button></li>
-        </ul>
-        <button onclick="createFile()">Create New File</button>
+        <ul id="file-list"></ul>
+        <button onclick="createFile()">New File</button>
     </div>
     <div id="editor">
-        <div id="controls">
-            <div>
-                <label for="js-preprocessor">JavaScript Preprocessor:</label>
-                <select id="js-preprocessor">
-                    <option value="none">None</option>
-                    <option value="typescript">TypeScript</option>
-                </select>
-                <label for="css-preprocessor">CSS Preprocessor:</label>
-                <select id="css-preprocessor">
-                    <option value="none">None</option>
-                    <option value="scss">SCSS</option>
-                </select>
-            </div>
-            <button id="preview-button">Preview</button>
-        </div>
-        <textarea id="file-content" placeholder="File content will appear here..."></textarea>
-        <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
+        <textarea id="file-content" placeholder="File content"></textarea>
+        <iframe id="preview" name="preview"></iframe>
     </div>
     <script>
+        let files = {
+            'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview</title>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    Hello world
+    <script src="script.js"></script>
+</body>
+</html>`,
+            'style.css': 'body { font-family: Arial, sans-serif; }',
+            'script.js': 'console.log("Hello World");'
+        };
+        let currentFile = 'index.html';
+
         document.addEventListener('DOMContentLoaded', () => {
-            const files = {
-                html: '',
-                css: '',
-                js: ''
-            };
-
-            const fileContentEditor = document.getElementById('file-content');
             const fileList = document.getElementById('file-list');
-            const jsPreprocessor = document.getElementById('js-preprocessor');
-            const cssPreprocessor = document.getElementById('css-preprocessor');
+            const fileContentEditor = document.getElementById('file-content');
             const previewFrame = document.getElementById('preview');
-            const previewButton = document.getElementById('preview-button');
 
-            let currentFile = 'html';
-
-            fileList.addEventListener('click', (event) => {
-                const target = event.target;
-                if (target.tagName === 'INPUT') {
-                    target.readOnly = false;
-                    target.focus();
-                } else if (target.tagName === 'LI' || target.tagName === 'INPUT') {
-                    const li = target.closest('li');
-                    currentFile = li.getAttribute('data-file');
-                    fileContentEditor.value = files[currentFile];
+            function renderFileList() {
+                fileList.innerHTML = '';
+                for (let fileName in files) {
+                    const li = document.createElement('li');
+                    li.textContent = fileName;
+                    li.onclick = () => openFile(fileName);
+                    fileList.appendChild(li);
                 }
-            });
+            }
 
-            fileList.addEventListener('change', (event) => {
-                const input = event.target;
-                const oldFileName = input.closest('li').getAttribute('data-file');
-                const newFileName = input.value.split('.')[0];
-                if (newFileName && newFileName !== oldFileName) {
-                    files[newFileName] = files[oldFileName];
-                    delete files[oldFileName];
-                    input.closest('li').setAttribute('data-file', newFileName);
-                    currentFile = newFileName;
-                }
-                input.readOnly = true;
+            function openFile(fileName) {
+                currentFile = fileName;
+                fileContentEditor.value = files[fileName];
                 updatePreview();
-            });
+            }
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
                 updatePreview();
             });
 
-            previewButton.addEventListener('click', openPreviewInNewTab);
-
-            let typeScriptLoaded = false;
-            let scssLoaded = false;
-
-            function loadScript(src, callback) {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = callback;
-                document.head.appendChild(script);
+            function generatePreviewContent() {
+                return files['index.html'];
             }
 
-            function loadTypeScript() {
-                if (!typeScriptLoaded) {
-                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
-                        typeScriptLoaded = true;
-                        updatePreview();
-                    });
-                }
-            }
-
-            function loadSCSS() {
-                if (!scssLoaded) {
-                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
-                        scssLoaded = true;
-                        updatePreview();
-                    });
-                }
-            }
-
-            function getTranspiledJs(jsCode) {
-                if (jsPreprocessor.value === 'typescript') {
-                    if (!typeScriptLoaded) {
-                        loadTypeScript();
-                        return '';
-                    }
-                    try {
-                        return ts.transpile(jsCode);
-                    } catch (e) {
-                        console.error('TypeScript transpilation error:', e);
-                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
-                    }
-                }
-                return jsCode;
-            }
-
-            function getTranspiledCss(cssCode) {
-                if (cssPreprocessor.value === 'scss') {
-                    if (!scssLoaded) {
-                        loadSCSS();
-                        return '';
-                    }
-                    return new Promise((resolve, reject) => {
-                        Sass.compile(cssCode, (result) => {
-                            if (result.status === 0) {
-                                resolve(result.text);
-                            } else {
-                                console.error('SCSS transpilation error:', result.formatted);
-                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
-                            }
-                        });
-                    });
-                }
-                return Promise.resolve(cssCode);
-            }
-
-            async function generatePreviewContent() {
-                const html = files.html;
-                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
-                const jsContent = getTranspiledJs(files.js);
-                const js = `<script>${jsContent}\<\/script>`;
-
-                const additionalFiles = Object.keys(files).filter(file => !['html', 'css', 'js'].includes(file)).map(file => {
-                    if (file.endsWith('.html')) {
-                        return files[file];
-                    } else if (file.endsWith('.css')) {
-                        return `<style>${files[file]}</style>`;
-                    } else if (file.endsWith('.js')) {
-                        return `<script>${files[file]}\<\/script>`;
-                    }
-                }).join('');
-
-                return `
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Preview</title>
-                        ${css}
-                    </head>
-                    <body>
-                        ${html}
-                        ${js}
-                        ${additionalFiles}
-                    </body>
-                    </html>
-                `;
-            }
-
-            async function updatePreview() {
+            function updatePreview() {
                 const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
                 previewDocument.open();
-                previewDocument.write(await generatePreviewContent());
+                previewDocument.write(generatePreviewContent());
                 previewDocument.close();
-            }
-
-            async function openPreviewInNewTab() {
-                const newWindow = window.open();
-                newWindow.document.open();
-                newWindow.document.write(await generatePreviewContent());
-                newWindow.document.close();
             }
 
             window.createFile = function () {
                 const fileName = prompt('Enter the new file name (with extension):');
-                if (fileName) {
+                if (fileName && !files[fileName]) {
                     files[fileName] = '';
-                    const li = document.createElement('li');
-                    li.setAttribute('data-file', fileName);
-                    li.innerHTML = `<input value="${fileName}" readonly><button onclick="deleteFile('${fileName}')">Delete</button>`;
-                    fileList.appendChild(li);
+                    renderFileList();
+                } else if (files[fileName]) {
+                    alert('File already exists.');
                 }
-            }
+            };
 
-            window.deleteFile = function (fileName) {
-                if (fileName && confirm(`Are you sure you want to delete ${fileName}?`)) {
-                    delete files[fileName];
-                    const li = fileList.querySelector(`li[data-file="${fileName}"]`);
-                    if (li) {
-                        fileList.removeChild(li);
-                    }
-                    currentFile = 'html';
-                    fileContentEditor.value = files[currentFile];
-                    updatePreview();
-                }
-            }
+            renderFileList();
+            openFile('index.html');
         });
     </script>
 </body>
