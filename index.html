@@ -7,23 +7,46 @@
     <style>
         body {
             display: flex;
-            flex-direction: column;
-            align-items: center;
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
             background-color: #f5f5f5;
         }
+        #sidebar {
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        #sidebar h2 {
+            margin: 0;
+            padding: 10px 0;
+            font-size: 18px;
+        }
+        #sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #sidebar li {
+            padding: 10px;
+            cursor: pointer;
+        }
+        #sidebar li:hover {
+            background-color: #444;
+        }
         #editor {
             display: flex;
+            flex-direction: column;
             width: 100%;
-            max-width: 1200px;
-            margin-bottom: 20px;
+            padding: 10px;
         }
         textarea {
-            width: 33%;
+            width: 100%;
             height: 300px;
-            margin: 5px;
+            margin: 5px 0;
             padding: 10px;
             box-sizing: border-box;
             font-family: monospace;
@@ -47,34 +70,61 @@
     </style>
 </head>
 <body>
-    <div id="controls">
-        <label for="js-preprocessor">JavaScript Preprocessor:</label>
-        <select id="js-preprocessor">
-            <option value="none">None</option>
-            <option value="typescript">TypeScript</option>
-        </select>
-        <label for="css-preprocessor">CSS Preprocessor:</label>
-        <select id="css-preprocessor">
-            <option value="none">None</option>
-            <option value="scss">SCSS</option>
-        </select>
-        <button id="preview-button">Preview</button>
+    <div id="sidebar">
+        <h2>Files</h2>
+        <ul>
+            <li data-file="html">index.html</li>
+            <li data-file="css">style.css</li>
+            <li data-file="js">script.js</li>
+        </ul>
     </div>
     <div id="editor">
-        <textarea id="html" placeholder="HTML"></textarea>
-        <textarea id="css" placeholder="CSS/SCSS"></textarea>
-        <textarea id="js" placeholder="JavaScript"></textarea>
+        <div id="controls">
+            <label for="js-preprocessor">JavaScript Preprocessor:</label>
+            <select id="js-preprocessor">
+                <option value="none">None</option>
+                <option value="typescript">TypeScript</option>
+            </select>
+            <label for="css-preprocessor">CSS Preprocessor:</label>
+            <select id="css-preprocessor">
+                <option value="none">None</option>
+                <option value="scss">SCSS</option>
+            </select>
+            <button id="preview-button">Preview</button>
+        </div>
+        <textarea id="file-content" placeholder="File content will appear here..."></textarea>
+        <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
-    <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const htmlEditor = document.getElementById('html');
-            const cssEditor = document.getElementById('css');
-            const jsEditor = document.getElementById('js');
+            const files = {
+                html: '',
+                css: '',
+                js: ''
+            };
+
+            const fileContentEditor = document.getElementById('file-content');
+            const sidebarItems = document.querySelectorAll('#sidebar li');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
+
+            let currentFile = 'html';
+
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentFile = item.getAttribute('data-file');
+                    fileContentEditor.value = files[currentFile];
+                });
+            });
+
+            fileContentEditor.addEventListener('input', () => {
+                files[currentFile] = fileContentEditor.value;
+                updatePreview();
+            });
+
+            previewButton.addEventListener('click', openPreviewInNewTab);
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -141,9 +191,9 @@
             }
 
             async function generatePreviewContent() {
-                const html = htmlEditor.value;
-                const css = `<style>${await getTranspiledCss(cssEditor.value)}</style>`;
-                const jsContent = getTranspiledJs(jsEditor.value);
+                const html = files.html;
+                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
+                const jsContent = getTranspiledJs(files.js);
                 const js = `<script>${jsContent}\<\/script>`;
 
                 return `
@@ -179,13 +229,6 @@
                 newWindow.document.write(completeContent);
                 newWindow.document.close();
             }
-
-            [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
-                element.addEventListener('input', updatePreview);
-                element.addEventListener('change', updatePreview);
-            });
-
-            previewButton.addEventListener('click', openPreviewInNewTab);
 
             // Initial call to display content on page load
             updatePreview();
