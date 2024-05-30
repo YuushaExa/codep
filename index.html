@@ -235,7 +235,15 @@
                 const jsContent = getTranspiledJs(files.js);
                 const js = `<script>${jsContent}\<\/script>`;
 
-                const additionalFiles = Object.keys(files).filter(file => !['html', 'css', 'js'].includes(file)).map(file => `<script>${files[file]}\<\/script>`).join('');
+                const additionalFiles = Object.keys(files).filter(file => !['html', 'css', 'js'].includes(file)).map(file => {
+                    if (file.endsWith('.html')) {
+                        return files[file];
+                    } else if (file.endsWith('.css')) {
+                        return `<style>${files[file]}</style>`;
+                    } else if (file.endsWith('.js')) {
+                        return `<script>${files[file]}\<\/script>`;
+                    }
+                }).join('');
 
                 return `
                     <!DOCTYPE html>
@@ -256,10 +264,10 @@
             }
 
             async function updatePreview() {
-                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                previewDoc.open();
-                previewDoc.write(await generatePreviewContent());
-                previewDoc.close();
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(await generatePreviewContent());
+                previewDocument.close();
             }
 
             async function openPreviewInNewTab() {
@@ -270,7 +278,7 @@
             }
 
             window.createFile = function () {
-                const fileName = prompt('Enter the new file name:');
+                const fileName = prompt('Enter the new file name (with extension):');
                 if (fileName) {
                     files[fileName] = '';
                     const li = document.createElement('li');
