@@ -40,8 +40,9 @@
         #controls {
             margin-bottom: 20px;
         }
-        #controls label, #controls select {
+        #controls label, #controls select, #controls button {
             font-size: 16px;
+            margin: 5px;
         }
     </style>
 </head>
@@ -57,13 +58,14 @@
             <option value="none">None</option>
             <option value="scss">SCSS</option>
         </select>
+        <button id="preview-button">Preview</button>
     </div>
     <div id="editor">
         <textarea id="html" placeholder="HTML"></textarea>
         <textarea id="css" placeholder="CSS/SCSS"></textarea>
         <textarea id="js" placeholder="JavaScript"></textarea>
     </div>
-    <iframe id="preview" name="preview" sandbox="allow-modals allow-forms allow-pointer-lock allow-popups allow-same-origin allow-scripts" frameborder="0" allow="geolocation; midi; camera; microphone; speaker;" class="result-iframe" loading="lazy"></iframe>
+    <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const htmlEditor = document.getElementById('html');
@@ -72,6 +74,7 @@
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
+            const previewButton = document.getElementById('preview-button');
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -137,13 +140,13 @@
                 return Promise.resolve(cssCode);
             }
 
-            async function updatePreview() {
+            async function generatePreviewContent() {
                 const html = htmlEditor.value;
                 const css = `<style>${await getTranspiledCss(cssEditor.value)}</style>`;
                 const jsContent = getTranspiledJs(jsEditor.value);
                 const js = `<script>${jsContent}\<\/script>`;
 
-                const completeContent = `
+                return `
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
@@ -158,6 +161,10 @@
                     </body>
                     </html>
                 `;
+            }
+
+            async function updatePreview() {
+                const completeContent = await generatePreviewContent();
 
                 const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
                 previewDocument.open();
@@ -165,10 +172,20 @@
                 previewDocument.close();
             }
 
+            async function openPreviewInNewTab() {
+                const completeContent = await generatePreviewContent();
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(completeContent);
+                newWindow.document.close();
+            }
+
             [htmlEditor, cssEditor, jsEditor, jsPreprocessor, cssPreprocessor].forEach(element => {
                 element.addEventListener('input', updatePreview);
                 element.addEventListener('change', updatePreview);
             });
+
+            previewButton.addEventListener('click', openPreviewInNewTab);
 
             // Initial call to display content on page load
             updatePreview();
