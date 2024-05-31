@@ -67,16 +67,27 @@
             font-size: 16px;
             margin: 5px;
         }
+        #new-file-controls {
+            margin-top: 20px;
+        }
+        #new-file-controls input, #new-file-controls button {
+            font-size: 16px;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul>
+        <ul id="file-list">
             <li data-file="html">index.html</li>
             <li data-file="css">style.css</li>
             <li data-file="js">script.js</li>
         </ul>
+        <div id="new-file-controls">
+            <input type="text" id="new-file-name" placeholder="New file name">
+            <button id="create-file-button">Create File</button>
+        </div>
     </div>
     <div id="editor">
         <div id="controls">
@@ -104,15 +115,38 @@
             };
 
             const fileContentEditor = document.getElementById('file-content');
-            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const fileList = document.getElementById('file-list');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
+            const newFileNameInput = document.getElementById('new-file-name');
+            const createFileButton = document.getElementById('create-file-button');
 
             let currentFile = 'html';
 
-            sidebarItems.forEach(item => {
+            function updateSidebar() {
+                fileList.innerHTML = '';
+                Object.keys(files).forEach(file => {
+                    const li = document.createElement('li');
+                    li.textContent = file;
+                    li.setAttribute('data-file', file);
+                    li.addEventListener('click', () => {
+                        currentFile = file;
+                        fileContentEditor.value = files[currentFile];
+                    });
+                    fileList.appendChild(li);
+                });
+            }
+
+            function createFile(fileName) {
+                if (!files[fileName]) {
+                    files[fileName] = '';
+                    updateSidebar();
+                }
+            }
+
+            fileList.querySelectorAll('li').forEach(item => {
                 item.addEventListener('click', () => {
                     currentFile = item.getAttribute('data-file');
                     fileContentEditor.value = files[currentFile];
@@ -125,6 +159,14 @@
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
+
+            createFileButton.addEventListener('click', () => {
+                const newFileName = newFileNameInput.value.trim();
+                if (newFileName) {
+                    createFile(newFileName);
+                    newFileNameInput.value = '';
+                }
+            });
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -195,6 +237,8 @@
                 const css = `<style>${await getTranspiledCss(files.css)}</style>`;
                 const jsContent = getTranspiledJs(files.js);
                 const js = `<script>${jsContent}\<\/script>`;
+                const additionalFiles = Object.keys(files).filter(file => !['html', 'css', 'js'].includes(file))
+                    .map(file => `<a href="#" onclick="openFile('${file}');return false;">${file}</a>`).join('<br>');
 
                 return `
                     <!DOCTYPE html>
@@ -208,6 +252,7 @@
                     <body>
                         ${html}
                         ${js}
+                        ${additionalFiles}
                     </body>
                     </html>
                 `;
@@ -233,6 +278,20 @@
             // Initial call to display content on page load
             updatePreview();
         });
+
+        function openFile(fileName) {
+            const fileContentEditor = document.getElementById('file-content');
+            const files = {
+                html: '',
+                css: '',
+                js: '',
+                [fileName]: ''
+            };
+            fileContentEditor.value = files[fileName];
+            const previewFrame = document.getElementById('preview');
+            const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            previewDocument.body.innerHTML = files[fileName];
+        }
     </script>
 </body>
 </html>
