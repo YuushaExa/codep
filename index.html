@@ -255,6 +255,24 @@
             // Initial call to display content on page load
             updatePreview();
             updateSidebar();
+
+            // Add this code inside the 'DOMContentLoaded' event listener, after the updatePreview function definition
+
+// Handle internal navigation within the iframe
+previewFrame.contentDocument.addEventListener('click', (event) => {
+    if (event.target.tagName === 'A') {
+        event.preventDefault(); // Prevent default navigation behavior
+        const href = event.target.getAttribute('href');
+        if (files[href]) {
+            currentFile = href;
+            fileContentEditor.value = files[currentFile];
+            updatePreview(); // Update preview with the content of the clicked file
+        } else {
+            console.error(`File "${href}" not found.`);
+        }
+    }
+});
+
         });
     </script>
 </body>
