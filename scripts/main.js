@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const codeEditor = document.getElementById('code-editor');
     const preview = document.getElementById('preview');
+    const fileSystem = document.getElementById('file-system');
 
     codeEditor.addEventListener('input', function () {
         updatePreview();
@@ -12,10 +13,8 @@ document.addEventListener('DOMContentLoaded', function () {
         preview.innerHTML = htmlContent;
     }
 
-    // File system functions
-    const fileSystem = document.getElementById('file-system');
-
-    function createNewFolder() {
+    // Attach functions to the window object to make them globally accessible
+    window.createNewFolder = function () {
         const folderName = prompt('Enter folder name:');
         if (folderName) {
             const folder = document.createElement('li');
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function createNewFile() {
+    window.createNewFile = function () {
         const fileName = prompt('Enter file name:');
         if (fileName) {
             const file = document.createElement('li');
