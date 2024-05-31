@@ -99,13 +99,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const files = {
-                'index.html': '',
-                'style.css': '',
-                'script.js': ''
+                'index.html': '<h1>Welcome to Index</h1>',
+                'style.css': 'body { font-family: Arial; }',
+                'script.js': 'console.log("Hello, world!");'
             };
 
             const fileContentEditor = document.getElementById('file-content');
-            const sidebar = document.getElementById('sidebar');
             const fileList = document.getElementById('file-list');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
@@ -128,13 +127,6 @@
                     fileList.appendChild(li);
                 });
             };
-
-            sidebar.querySelectorAll('li').forEach(item => {
-                item.addEventListener('click', () => {
-                    currentFile = item.getAttribute('data-file');
-                    fileContentEditor.value = files[currentFile];
-                });
-            });
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
