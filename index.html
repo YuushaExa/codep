@@ -114,19 +114,21 @@
 
             let currentFile = 'index.html';
 
-            const updateSidebar = () => {
-                fileList.innerHTML = '';
-                Object.keys(files).forEach(file => {
-                    const li = document.createElement('li');
-                    li.textContent = file;
-                    li.dataset.file = file;
-                    li.addEventListener('click', () => {
-                        currentFile = li.dataset.file;
-                        fileContentEditor.value = files[currentFile];
-                    });
-                    fileList.appendChild(li);
-                });
-            };
+         const updateSidebar = () => {
+    fileList.innerHTML = '';
+    Object.keys(files).forEach(file => {
+        const li = document.createElement('li');
+        li.textContent = file;
+        li.dataset.file = file;
+        li.addEventListener('click', () => {
+            currentFile = li.dataset.file;
+            fileContentEditor.value = files[currentFile];
+            updatePreview(); // Update preview when a file is clicked
+        });
+        fileList.appendChild(li);
+    });
+};
+
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
@@ -135,15 +137,16 @@
 
             previewButton.addEventListener('click', openPreviewInNewTab);
 
-            createFileButton.addEventListener('click', () => {
-                const newFileName = prompt('Enter new file name:');
-                if (newFileName && !files[newFileName]) {
-                    files[newFileName] = '';
-                    updateSidebar();
-                } else {
-                    alert('File already exists or invalid name.');
-                }
-            });
+          createFileButton.addEventListener('click', () => {
+    const newFileName = prompt('Enter new file name:');
+    if (newFileName && !files[newFileName]) {
+        // Initialize the new file with empty content
+        files[newFileName] = '';
+        updateSidebar();
+    } else {
+        alert('File already exists or invalid name.');
+    }
+});
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
