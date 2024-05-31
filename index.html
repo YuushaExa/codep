@@ -72,11 +72,12 @@
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul>
-            <li data-file="html">index.html</li>
-            <li data-file="css">style.css</li>
-            <li data-file="js">script.js</li>
+        <ul id="file-list">
+            <li data-file="index.html">index.html</li>
+            <li data-file="style.css">style.css</li>
+            <li data-file="script.js">script.js</li>
         </ul>
+        <button id="create-file">Create New File</button>
     </div>
     <div id="editor">
         <div id="controls">
@@ -98,26 +99,34 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const files = {
-                html: '',
-                css: '',
-                js: ''
+                'index.html': '<h1>Welcome to Index</h1>',
+                'style.css': 'body { font-family: Arial; }',
+                'script.js': 'console.log("Hello, world!");'
             };
 
             const fileContentEditor = document.getElementById('file-content');
-            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const fileList = document.getElementById('file-list');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
+            const createFileButton = document.getElementById('create-file');
 
-            let currentFile = 'html';
+            let currentFile = 'index.html';
 
-            sidebarItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    currentFile = item.getAttribute('data-file');
-                    fileContentEditor.value = files[currentFile];
+            const updateSidebar = () => {
+                fileList.innerHTML = '';
+                Object.keys(files).forEach(file => {
+                    const li = document.createElement('li');
+                    li.textContent = file;
+                    li.dataset.file = file;
+                    li.addEventListener('click', () => {
+                        currentFile = li.dataset.file;
+                        fileContentEditor.value = files[currentFile];
+                    });
+                    fileList.appendChild(li);
                 });
-            });
+            };
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
@@ -125,6 +134,16 @@
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
+
+            createFileButton.addEventListener('click', () => {
+                const newFileName = prompt('Enter new file name:');
+                if (newFileName && !files[newFileName]) {
+                    files[newFileName] = '';
+                    updateSidebar();
+                } else {
+                    alert('File already exists or invalid name.');
+                }
+            });
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -191,9 +210,9 @@
             }
 
             async function generatePreviewContent() {
-                const html = files.html;
-                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
-                const jsContent = getTranspiledJs(files.js);
+                const html = files['index.html'];
+                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
+                const jsContent = getTranspiledJs(files['script.js']);
                 const js = `<script>${jsContent}\<\/script>`;
 
                 return `
@@ -232,6 +251,7 @@
 
             // Initial call to display content on page load
             updatePreview();
+            updateSidebar();
         });
     </script>
 </body>
