@@ -97,187 +97,84 @@
 <iframe id="preview" name="preview"></iframe>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const files = {
-                'index.html': '<h1>Welcome to Index</h1>',
-                'style.css': 'body { font-family: Arial; }',
-                'script.js': 'console.log("Hello, world!");'
-            };
+// Replace the content of the 'DOMContentLoaded' event listener with the following
 
-            const fileContentEditor = document.getElementById('file-content');
-            const fileList = document.getElementById('file-list');
-            const jsPreprocessor = document.getElementById('js-preprocessor');
-            const cssPreprocessor = document.getElementById('css-preprocessor');
-            const previewFrame = document.getElementById('preview');
-            const previewButton = document.getElementById('preview-button');
-            const createFileButton = document.getElementById('create-file');
+document.addEventListener('DOMContentLoaded', () => {
+    const files = {
+        'index.html': '<h1>Welcome to Index</h1>',
+        'style.css': 'body { font-family: Arial; }',
+        'script.js': 'console.log("Hello, world!");'
+    };
 
-            let currentFile = 'index.html';
+    const fileList = document.getElementById('file-list');
+    const previewFrame = document.getElementById('preview');
 
-         const updateSidebar = () => {
-    fileList.innerHTML = '';
-    Object.keys(files).forEach(file => {
-        const li = document.createElement('li');
-        li.textContent = file;
-        li.dataset.file = file;
-        li.addEventListener('click', () => {
-            currentFile = li.dataset.file;
-            fileContentEditor.value = files[currentFile];
-            updatePreview(); // Update preview when a file is clicked
-        });
-        fileList.appendChild(li);
-    });
-};
+    let currentFile = 'index.html';
 
-
-            fileContentEditor.addEventListener('input', () => {
-                files[currentFile] = fileContentEditor.value;
+    const updateSidebar = () => {
+        fileList.innerHTML = '';
+        Object.keys(files).forEach(file => {
+            const li = document.createElement('li');
+            li.textContent = file;
+            li.dataset.file = file;
+            li.addEventListener('click', () => {
+                currentFile = li.dataset.file;
                 updatePreview();
             });
+            fileList.appendChild(li);
+        });
+    };
 
-            previewButton.addEventListener('click', openPreviewInNewTab);
+    const updatePreview = () => {
+        const completeContent = generatePreviewContent();
+        const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        previewDocument.open();
+        previewDocument.write(completeContent);
+        previewDocument.close();
+    };
 
-          createFileButton.addEventListener('click', () => {
-    const newFileName = prompt('Enter new file name:');
-    if (newFileName && !files[newFileName]) {
-        // Initialize the new file with empty content
-        files[newFileName] = '';
-        updateSidebar();
-    } else {
-        alert('File already exists or invalid name.');
-    }
+    const generatePreviewContent = () => {
+        const html = files['index.html'];
+        const css = `<style>${files['style.css']}</style>`;
+        const js = `<script>${files['script.js']}</script>`;
+        return `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Preview</title>
+                ${css}
+            </head>
+            <body>
+                ${html}
+                ${js}
+            </body>
+            </html>
+        `;
+    };
+
+    previewFrame.onload = function() {
+        const iframeDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        const links = iframeDocument.querySelectorAll('a');
+        links.forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default navigation behavior
+                const href = link.getAttribute('href');
+                if (files[href]) {
+                    currentFile = href;
+                    updatePreview(); // Update preview with the content of the clicked file
+                } else {
+                    console.error(`File "${href}" not found.`);
+                }
+            });
+        });
+    };
+
+    updatePreview();
+    updateSidebar();
 });
 
-            let typeScriptLoaded = false;
-            let scssLoaded = false;
-
-            function loadScript(src, callback) {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = callback;
-                document.head.appendChild(script);
-            }
-
-            function loadTypeScript() {
-                if (!typeScriptLoaded) {
-                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
-                        typeScriptLoaded = true;
-                        updatePreview();
-                    });
-                }
-            }
-
-            function loadSCSS() {
-                if (!scssLoaded) {
-                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
-                        scssLoaded = true;
-                        updatePreview();
-                    });
-                }
-            }
-
-            function getTranspiledJs(jsCode) {
-                if (jsPreprocessor.value === 'typescript') {
-                    if (!typeScriptLoaded) {
-                        loadTypeScript();
-                        return '';
-                    }
-                    try {
-                        return ts.transpile(jsCode);
-                    } catch (e) {
-                        console.error('TypeScript transpilation error:', e);
-                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
-                    }
-                }
-                return jsCode;
-            }
-
-            function getTranspiledCss(cssCode) {
-                if (cssPreprocessor.value === 'scss') {
-                    if (!scssLoaded) {
-                        loadSCSS();
-                        return '';
-                    }
-                    return new Promise((resolve, reject) => {
-                        Sass.compile(cssCode, (result) => {
-                            if (result.status === 0) {
-                                resolve(result.text);
-                            } else {
-                                console.error('SCSS transpilation error:', result.formatted);
-                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
-                            }
-                        });
-                    });
-                }
-                return Promise.resolve(cssCode);
-            }
-
-            async function generatePreviewContent() {
-                const html = files['index.html'];
-                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
-                const jsContent = getTranspiledJs(files['script.js']);
-                const js = `<script>${jsContent}\<\/script>`;
-
-                return `
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Preview</title>
-                        ${css}
-                    </head>
-                    <body>
-                        ${html}
-                        ${js}
-                    </body>
-                    </html>
-                `;
-            }
-
-            async function updatePreview() {
-                const completeContent = await generatePreviewContent();
-
-                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                previewDocument.open();
-                previewDocument.write(completeContent);
-                previewDocument.close();
-            }
-
-            async function openPreviewInNewTab() {
-                const completeContent = await generatePreviewContent();
-                const newWindow = window.open();
-                newWindow.document.open();
-                newWindow.document.write(completeContent);
-                newWindow.document.close();
-            }
-
-            // Initial call to display content on page load
-            updatePreview();
-            updateSidebar();
-
-            // Add this code inside the 'DOMContentLoaded' event listener, after the updatePreview function definition
-
-// Handle internal navigation within the iframe
-previewFrame.onload = function() {
-    const iframeDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-    const links = iframeDocument.querySelectorAll('a');
-    links.forEach(link => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault(); // Prevent default navigation behavior
-            const href = link.getAttribute('href');
-            if (files[href]) {
-                currentFile = href;
-                fileContentEditor.value = files[currentFile];
-                updatePreview(); // Update preview with the content of the clicked file
-            } else {
-                console.error(`File "${href}" not found.`);
-            }
-        });
-    });
-};
-
-        });
     </script>
 </body>
 </html>
