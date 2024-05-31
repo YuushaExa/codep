@@ -259,19 +259,23 @@
             // Add this code inside the 'DOMContentLoaded' event listener, after the updatePreview function definition
 
 // Handle internal navigation within the iframe
-previewFrame.contentDocument.addEventListener('click', (event) => {
-    if (event.target.tagName === 'A') {
-        event.preventDefault(); // Prevent default navigation behavior
-        const href = event.target.getAttribute('href');
-        if (files[href]) {
-            currentFile = href;
-            fileContentEditor.value = files[currentFile];
-            updatePreview(); // Update preview with the content of the clicked file
-        } else {
-            console.error(`File "${href}" not found.`);
-        }
-    }
-});
+previewFrame.onload = function() {
+    const iframeDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+    const links = iframeDocument.querySelectorAll('a');
+    links.forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default navigation behavior
+            const href = link.getAttribute('href');
+            if (files[href]) {
+                currentFile = href;
+                fileContentEditor.value = files[currentFile];
+                updatePreview(); // Update preview with the content of the clicked file
+            } else {
+                console.error(`File "${href}" not found.`);
+            }
+        });
+    });
+};
 
         });
     </script>
