@@ -73,9 +73,9 @@
     <div id="sidebar">
         <h2>Files</h2>
         <ul id="file-list">
-            <li data-file="html">index.html</li>
-            <li data-file="css">style.css</li>
-            <li data-file="js">script.js</li>
+            <li data-file="index.html">index.html</li>
+            <li data-file="style.css">style.css</li>
+            <li data-file="script.js">script.js</li>
         </ul>
         <button id="create-file">Create New File</button>
     </div>
@@ -99,9 +99,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const files = {
-                html: '',
-                css: '',
-                js: ''
+                'index.html': '',
+                'style.css': '',
+                'script.js': ''
             };
 
             const fileContentEditor = document.getElementById('file-content');
@@ -113,7 +113,7 @@
             const previewButton = document.getElementById('preview-button');
             const createFileButton = document.getElementById('create-file');
 
-            let currentFile = 'html';
+            let currentFile = 'index.html';
 
             const updateSidebar = () => {
                 fileList.innerHTML = '';
@@ -218,9 +218,9 @@
             }
 
             async function generatePreviewContent() {
-                const html = files.html;
-                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
-                const jsContent = getTranspiledJs(files.js);
+                const html = files['index.html'];
+                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
+                const jsContent = getTranspiledJs(files['script.js']);
                 const js = `<script>${jsContent}\<\/script>`;
 
                 return `
@@ -259,6 +259,7 @@
 
             // Initial call to display content on page load
             updatePreview();
+            updateSidebar();
         });
     </script>
 </body>
