@@ -72,12 +72,11 @@
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul id="file-list">
-            <li data-file="index.html">index.html</li>
-            <li data-file="style.css">style.css</li>
-            <li data-file="script.js">script.js</li>
+        <ul>
+            <li data-file="html">index.html</li>
+            <li data-file="css">style.css</li>
+            <li data-file="js">script.js</li>
         </ul>
-        <button id="create-file">Create New File</button>
     </div>
     <div id="editor">
         <div id="controls">
@@ -94,85 +93,146 @@
             <button id="preview-button">Preview</button>
         </div>
         <textarea id="file-content" placeholder="File content will appear here..."></textarea>
-<iframe id="preview" name="preview"></iframe>
+        <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
     <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const files = {
-        'index.html': '<h1>Welcome to Index</h1>',
-        'style.css': 'body { font-family: Arial; }',
-        'script.js': 'console.log("Hello, world!");'
-    };
+        document.addEventListener('DOMContentLoaded', () => {
+            const files = {
+                html: '',
+                css: '',
+                js: ''
+            };
 
-    const fileList = document.getElementById('file-list');
-    const previewFrame = document.getElementById('preview');
+            const fileContentEditor = document.getElementById('file-content');
+            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const jsPreprocessor = document.getElementById('js-preprocessor');
+            const cssPreprocessor = document.getElementById('css-preprocessor');
+            const previewFrame = document.getElementById('preview');
+            const previewButton = document.getElementById('preview-button');
 
-    let currentFile = 'index.html';
+            let currentFile = 'html';
 
-    const updateSidebar = () => {
-        fileList.innerHTML = '';
-        Object.keys(files).forEach(file => {
-            const li = document.createElement('li');
-            li.textContent = file;
-            li.dataset.file = file;
-            li.addEventListener('click', () => {
-                currentFile = li.dataset.file;
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentFile = item.getAttribute('data-file');
+                    fileContentEditor.value = files[currentFile];
+                });
+            });
+
+            fileContentEditor.addEventListener('input', () => {
+                files[currentFile] = fileContentEditor.value;
                 updatePreview();
             });
-            fileList.appendChild(li);
-        });
-    };
 
-    const updatePreview = () => {
-        const completeContent = generatePreviewContent();
-        const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        previewDocument.open();
-        previewDocument.write(completeContent);
-        previewDocument.close();
-    };
+            previewButton.addEventListener('click', openPreviewInNewTab);
 
-    const generatePreviewContent = () => {
-        const html = files['index.html'];
-        const css = `<style>${files['style.css']}</style>`;
-        const js =  `<script>${files['script.js']}</sript>`;
-        return `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Preview</title>
-                ${css}
-            </head>
-            <body>
-                ${html}
-                ${js}
-            </body>
-            </html>
-        `;
-    };
+            let typeScriptLoaded = false;
+            let scssLoaded = false;
 
-    previewFrame.onload = function() {
-        const iframeDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        const links = iframeDocument.querySelectorAll('a');
-        links.forEach(link => {
-            link.addEventListener('click', (event) => {
-                event.preventDefault(); // Prevent default navigation behavior
-                const href = link.getAttribute('href');
-                if (files[href]) {
-                    currentFile = href;
-                    updatePreview(); // Update preview with the content of the clicked file
-                } else {
-                    console.error(`File "${href}" not found.`);
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
+            }
+
+            function loadTypeScript() {
+                if (!typeScriptLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
+                        typeScriptLoaded = true;
+                        updatePreview();
+                    });
                 }
-            });
+            }
+
+            function loadSCSS() {
+                if (!scssLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
+                        scssLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function getTranspiledJs(jsCode) {
+                if (jsPreprocessor.value === 'typescript') {
+                    if (!typeScriptLoaded) {
+                        loadTypeScript();
+                        return '';
+                    }
+                    try {
+                        return ts.transpile(jsCode);
+                    } catch (e) {
+                        console.error('TypeScript transpilation error:', e);
+                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    }
+                }
+                return jsCode;
+            }
+
+            function getTranspiledCss(cssCode) {
+                if (cssPreprocessor.value === 'scss') {
+                    if (!scssLoaded) {
+                        loadSCSS();
+                        return '';
+                    }
+                    return new Promise((resolve, reject) => {
+                        Sass.compile(cssCode, (result) => {
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
+                }
+                return Promise.resolve(cssCode);
+            }
+
+            async function generatePreviewContent() {
+                const html = files.html;
+                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
+                const jsContent = getTranspiledJs(files.js);
+                const js = `<script>${jsContent}\<\/script>`;
+
+                return `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+            }
+
+            async function updatePreview() {
+                const completeContent = await generatePreviewContent();
+
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(completeContent);
+                previewDocument.close();
+            }
+
+            async function openPreviewInNewTab() {
+                const completeContent = await generatePreviewContent();
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(completeContent);
+                newWindow.document.close();
+            }
+
+            // Initial call to display content on page load
+            updatePreview();
         });
-    };
-
-    updatePreview();
-    updateSidebar();
-});
-
     </script>
 </body>
 </html>
