@@ -29,10 +29,13 @@ self.addEventListener('fetch', event => {
             // Return cached response if found, otherwise fetch from network
             return response || fetch(event.request).then(networkResponse => {
                 // Cache the new file if it's not already cached
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(event.request, networkResponse.clone());
-                    return networkResponse;
-                });
+                if (event.request.method === 'GET' && networkResponse.type !== 'opaque') {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                }
+                return networkResponse;
             }).catch(() => {
                 // Fallback to index.html for navigation requests
                 if (event.request.mode === 'navigate') {
