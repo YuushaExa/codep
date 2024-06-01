@@ -283,7 +283,7 @@ async function saveFileToCache(fileName, content) {
         const response = new Response(content, {
             headers: { 'Content-Type': 'text/html' }
         });
-        await cache.put(new Request(`/${fileName}`, { cache: 'reload' }), response);
+        await cache.put(new Request(`/codep/${fileName}`, { cache: 'reload' }), response);
     }
 }
 
