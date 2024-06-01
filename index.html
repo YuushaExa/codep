@@ -162,22 +162,23 @@
             });
 
             // Add new file
-            addFileButton.addEventListener('click', () => {
-                const fileName = newFileNameInput.value.trim();
-                if (fileName && !files[fileName]) {
-                    files[fileName] = '';
-                    const newFileItem = document.createElement('li');
-                    newFileItem.textContent = fileName;
-                    newFileItem.setAttribute('data-file', fileName);
-                    newFileItem.addEventListener('click', () => {
-                        currentFile = fileName;
-                        fileContentEditor.value = files[currentFile];
-                    });
-                    fileList.appendChild(newFileItem);
-                    saveFileToCache(fileName, '');
-                    newFileNameInput.value = '';
-                }
-            });
+          addFileButton.addEventListener('click', () => {
+    const fileName = newFileNameInput.value.trim();
+    if (fileName && !files[fileName]) {
+        files[fileName] = '';
+        const newFileItem = document.createElement('li');
+        newFileItem.textContent = fileName;
+        newFileItem.setAttribute('data-file', fileName);
+        newFileItem.addEventListener('click', () => {
+            currentFile = fileName;
+            fileContentEditor.value = files[currentFile];
+        });
+        fileList.appendChild(newFileItem);
+        saveFileToCache(fileName, '');
+        newFileNameInput.value = '';
+    }
+});
+
 
             // Preview button click event
             previewButton.addEventListener('click', openPreviewInNewTab);
@@ -287,15 +288,16 @@
             }
 
             // Save file to cache storage
-            async function saveFileToCache(fileName, content) {
-                if ('caches' in window) {
-                    const cache = await caches.open('jsfiddle-clone-files');
-                    const response = new Response(content, {
-                        headers: { 'Content-Type': 'text/plain' }
-                    });
-                    await cache.put(`${window.location.origin}/${fileName}`, response);
-                }
-            }
+async function saveFileToCache(fileName, content) {
+    if ('caches' in window) {
+        const cache = await caches.open('jsfiddle-clone-files');
+        const response = new Response(content, {
+            headers: { 'Content-Type': 'text/plain' }
+        });
+        await cache.put(`${location.origin}/${fileName}`, response);
+    }
+}
+
 
             // Initial call to display content on page load
             updatePreview();
