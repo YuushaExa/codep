@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSFiddle Clone</title>
+    <title>CodePen Clone</title>
     <style>
         body {
             display: flex;
@@ -123,7 +123,6 @@
                     li.addEventListener('click', () => {
                         currentFile = li.dataset.file;
                         fileContentEditor.value = files[currentFile];
-                        updatePreview(); // Update preview when a file is clicked
                     });
                     fileList.appendChild(li);
                 });
@@ -198,63 +197,62 @@
                     }
                     return new Promise((resolve, reject) => {
                         Sass.compile(cssCode, (result) => {
-if (result.status === 0) {
-resolve(result.text);
-} else {
-console.error('SCSS transpilation error:', result.formatted);
-resolve(/* SCSS transpilation error: ${result.formatted} */);
-}
-});
-});
-}
-return Promise.resolve(cssCode);
-}
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
+                }
+                return Promise.resolve(cssCode);
+            }
 
-                    async function generatePreviewContent() {
-            const html = files['index.html'];
-            const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
-            const jsContent = getTranspiledJs(files['script.js']);
-            const js = `<script>${jsContent}\<\/script>`;
+            async function generatePreviewContent() {
+                const html = files['index.html'] || '';
+                const css = `<style>${await getTranspiledCss(files['style.css'] || '')}</style>`;
+                const jsContent = getTranspiledJs(files['script.js'] || '');
+                const js = `<script>${jsContent}\<\/script>`;
 
-            return `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Preview</title>
-                    ${css}
-                </head>
-                <body>
-                    ${html}
-                    ${js}
-                </body>
-                </html>
-            `;
-        }
+                return `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+            }
 
-        async function updatePreview() {
-            const completeContent = await generatePreviewContent();
+            async function updatePreview() {
+                const completeContent = await generatePreviewContent();
 
-            const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            previewDocument.open();
-            previewDocument.write(completeContent);
-            previewDocument.close();
-        }
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(completeContent);
+                previewDocument.close();
+            }
 
-        async function openPreviewInNewTab() {
-            const completeContent = await generatePreviewContent();
-            const newWindow = window.open();
-            newWindow.document.open();
-            newWindow.document.write(completeContent);
-            newWindow.document.close();
-        }
+            async function openPreviewInNewTab() {
+                const completeContent = await generatePreviewContent();
+                const newWindow = window.open();
+                newWindow.document.open();
+                newWindow.document.write(completeContent);
+                newWindow.document.close();
+            }
 
-        // Initial call to display content on page load
-        updatePreview();
-        updateSidebar();
-    });
-</script>
+            // Initial call to display content on page load
+            updatePreview();
+            updateSidebar();
+        });
+    </script>
 </body>
 </html>
-    
