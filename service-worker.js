@@ -12,6 +12,8 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(CACHE_URLS);
+        }).catch(error => {
+            console.error('Failed to cache initial files:', error);
         })
     );
     self.skipWaiting();
@@ -26,21 +28,24 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request).then(response => {
-            // Return cached response if found, otherwise fetch from network
-            return response || fetch(event.request).then(networkResponse => {
-                // Cache the new file if it's not already cached
-                if (event.request.method === 'GET' && networkResponse.type !== 'opaque') {
-                    return caches.open(CACHE_NAME).then(cache => {
+            if (response) {
+                return response;
+            }
+
+            return fetch(event.request).then(networkResponse => {
+                if (event.request.method === 'GET' && networkResponse && networkResponse.status === 200) {
+                    caches.open(CACHE_NAME).then(cache => {
                         cache.put(event.request, networkResponse.clone());
-                        return networkResponse;
                     });
                 }
                 return networkResponse;
-            }).catch(() => {
+            }).catch(error => {
+                console.error('Fetching failed:', error);
                 // Fallback to index.html for navigation requests
                 if (event.request.mode === 'navigate') {
                     return caches.match('/index.html');
                 }
+                return new Response('File not found.', { status: 404 });
             });
         })
     );
