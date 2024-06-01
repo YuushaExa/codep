@@ -43,7 +43,7 @@ self.addEventListener('fetch', event => {
                 console.error('Fetching failed:', error);
                 // Fallback to index.html for navigation requests
                 if (event.request.mode === 'navigate') {
-                    return caches.match('/index.html');
+                    return caches.match('/codep/index.html');
                 }
                 return new Response('File not found.', { status: 404 });
             });
