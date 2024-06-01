@@ -113,7 +113,7 @@
         <textarea id="file-content" placeholder="File content will appear here..."></textarea>
         <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
-    <script>
+<script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/codep/service-worker.js')
             .then(registration => {
