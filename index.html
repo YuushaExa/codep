@@ -73,9 +73,7 @@
     <div id="sidebar">
         <h2>Files</h2>
         <ul id="file-list">
-            <li data-file="index.html">index.html</li>
-            <li data-file="style.css">style.css</li>
-            <li data-file="script.js">script.js</li>
+            <!-- Files will be dynamically added here -->
         </ul>
         <button id="create-file">Create New File</button>
     </div>
@@ -98,12 +96,6 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const files = {
-                'index.html': '<h1>Welcome to Index</h1>',
-                'style.css': 'body { font-family: Arial; }',
-                'script.js': 'console.log("Hello, world!");'
-            };
-
             const fileContentEditor = document.getElementById('file-content');
             const fileList = document.getElementById('file-list');
             const jsPreprocessor = document.getElementById('js-preprocessor');
@@ -113,6 +105,21 @@
             const createFileButton = document.getElementById('create-file');
 
             let currentFile = 'index.html';
+
+            const loadFiles = () => {
+                const savedFiles = JSON.parse(localStorage.getItem('files')) || {
+                    'index.html': '<h1>Welcome to Index</h1>',
+                    'style.css': 'body { font-family: Arial; }',
+                    'script.js': 'console.log("Hello, world!");'
+                };
+                return savedFiles;
+            };
+
+            let files = loadFiles();
+
+            const saveFiles = () => {
+                localStorage.setItem('files', JSON.stringify(files));
+            };
 
             const updateSidebar = () => {
                 fileList.innerHTML = '';
@@ -130,15 +137,17 @@
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
+                saveFiles();
                 updatePreview();
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
 
             createFileButton.addEventListener('click', () => {
-                const newFileName = prompt('Enter new file name:');
+                const newFileName = prompt('Enter new file name (with extension):');
                 if (newFileName && !files[newFileName]) {
                     files[newFileName] = '';
+                    saveFiles();
                     updateSidebar();
                 } else {
                     alert('File already exists or invalid name.');
@@ -250,6 +259,7 @@
             }
 
             // Initial call to display content on page load
+            fileContentEditor.value = files[currentFile];
             updatePreview();
             updateSidebar();
         });
