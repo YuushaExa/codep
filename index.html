@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodePen Clone</title>
+    <title>JSFiddle Clone</title>
     <style>
         body {
             display: flex;
@@ -72,10 +72,11 @@
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul id="file-list">
-            <!-- Files will be dynamically added here -->
+        <ul>
+            <li data-file="html">index.html</li>
+            <li data-file="css">style.css</li>
+            <li data-file="js">script.js</li>
         </ul>
-        <button id="create-file">Create New File</button>
     </div>
     <div id="editor">
         <div id="controls">
@@ -95,73 +96,35 @@
         <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
     <script>
-        // Register the service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js').then(registration => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            }).catch(error => {
-                console.log('Service Worker registration failed:', error);
-            });
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
+            const files = {
+                html: '',
+                css: '',
+                js: ''
+            };
+
             const fileContentEditor = document.getElementById('file-content');
-            const fileList = document.getElementById('file-list');
+            const sidebarItems = document.querySelectorAll('#sidebar li');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
-            const createFileButton = document.getElementById('create-file');
 
-            let currentFile = 'index.html';
+            let currentFile = 'html';
 
-            const loadFiles = () => {
-                const savedFiles = JSON.parse(localStorage.getItem('files')) || {
-                    'index.html': '<h1>Welcome to Index</h1>',
-                    'style.css': 'body { font-family: Arial; }',
-                    'script.js': 'console.log("Hello, world!");'
-                };
-                return savedFiles;
-            };
-
-            let files = loadFiles();
-
-            const saveFiles = () => {
-                localStorage.setItem('files', JSON.stringify(files));
-            };
-
-            const updateSidebar = () => {
-                fileList.innerHTML = '';
-                Object.keys(files).forEach(file => {
-                    const li = document.createElement('li');
-                    li.textContent = file;
-                    li.dataset.file = file;
-                    li.addEventListener('click', () => {
-                        currentFile = li.dataset.file;
-                        fileContentEditor.value = files[currentFile];
-                    });
-                    fileList.appendChild(li);
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentFile = item.getAttribute('data-file');
+                    fileContentEditor.value = files[currentFile];
                 });
-            };
+            });
 
             fileContentEditor.addEventListener('input', () => {
                 files[currentFile] = fileContentEditor.value;
-                saveFiles();
                 updatePreview();
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
-
-            createFileButton.addEventListener('click', () => {
-                const newFileName = prompt('Enter new file name (with extension):');
-                if (newFileName && !files[newFileName]) {
-                    files[newFileName] = '';
-                    saveFiles();
-                    updateSidebar();
-                } else {
-                    alert('File already exists or invalid name.');
-                }
-            });
 
             let typeScriptLoaded = false;
             let scssLoaded = false;
@@ -228,9 +191,9 @@
             }
 
             async function generatePreviewContent() {
-                const html = files['index.html'] || '';
-                const css = `<style>${await getTranspiledCss(files['style.css'] || '')}</style>`;
-                const jsContent = getTranspiledJs(files['script.js'] || '');
+                const html = files.html;
+                const css = `<style>${await getTranspiledCss(files.css)}</style>`;
+                const jsContent = getTranspiledJs(files.js);
                 const js = `<script>${jsContent}\<\/script>`;
 
                 return `
@@ -268,9 +231,7 @@
             }
 
             // Initial call to display content on page load
-            fileContentEditor.value = files[currentFile];
             updatePreview();
-            updateSidebar();
         });
     </script>
 </body>
