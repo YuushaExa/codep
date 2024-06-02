@@ -25,16 +25,17 @@
             padding: 10px 0;
             font-size: 18px;
         }
-        #sidebar ul {
+        #file-tree {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        #sidebar li {
-            padding: 10px;
+        #file-tree li {
+            padding: 5px;
             cursor: pointer;
+            user-select: none;
         }
-        #sidebar li:hover {
+        #file-tree li:hover {
             background-color: #444;
         }
         #editor {
@@ -67,18 +68,23 @@
             font-size: 16px;
             margin: 5px;
         }
+        .folder {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2>Files</h2>
-        <ul id="file-list">
-            <li data-file="index.html">index.html</li>
-            <li data-file="style.css">style.css</li>
-            <li data-file="script.js">script.js</li>
+        <ul id="file-tree">
+            <li data-file="index.html" draggable="true">index.html</li>
+            <li data-file="style.css" draggable="true">style.css</li>
+            <li data-file="script.js" draggable="true">script.js</li>
         </ul>
         <input type="text" id="new-file-name" placeholder="New file name">
         <button id="add-file-button">Add File</button>
+        <input type="text" id="new-folder-name" placeholder="New folder name">
+        <button id="add-folder-button">Add Folder</button>
     </div>
     <div id="editor">
         <div id="controls">
@@ -106,22 +112,77 @@
             };
 
             const fileContentEditor = document.getElementById('file-content');
-            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const fileTree = document.getElementById('file-tree');
             const jsPreprocessor = document.getElementById('js-preprocessor');
             const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
             const newFileNameInput = document.getElementById('new-file-name');
             const addFileButton = document.getElementById('add-file-button');
-            const fileList = document.getElementById('file-list');
+            const newFolderNameInput = document.getElementById('new-folder-name');
+            const addFolderButton = document.getElementById('add-folder-button');
 
             let currentFile = 'index.html';
 
-            sidebarItems.forEach(item => {
+            function addFileToTree(fileName) {
+                const newFileItem = document.createElement('li');
+                newFileItem.textContent = fileName;
+                newFileItem.setAttribute('data-file', fileName);
+                newFileItem.setAttribute('draggable', 'true');
+                newFileItem.addEventListener('click', () => {
+                    currentFile = fileName;
+                    fileContentEditor.value = files[currentFile];
+                });
+                newFileItem.addEventListener('dragstart', handleDragStart);
+                newFileItem.addEventListener('dragover', handleDragOver);
+                newFileItem.addEventListener('drop', handleDrop);
+                return newFileItem;
+            }
+
+            function addFolderToTree(folderName) {
+                const newFolderItem = document.createElement('li');
+                newFolderItem.textContent = folderName;
+                newFolderItem.classList.add('folder');
+                const nestedList = document.createElement('ul');
+                newFolderItem.appendChild(nestedList);
+                newFolderItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    nestedList.style.display = nestedList.style.display === 'none' ? 'block' : 'none';
+                });
+                newFolderItem.addEventListener('dragover', handleDragOver);
+                newFolderItem.addEventListener('drop', handleDrop);
+                return newFolderItem;
+            }
+
+            function handleDragStart(e) {
+                e.dataTransfer.setData('text/plain', e.target.getAttribute('data-file'));
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const draggedFile = e.dataTransfer.getData('text/plain');
+                const targetFolder = e.target.tagName === 'LI' ? e.target : e.target.closest('li.folder');
+                if (targetFolder && targetFolder.classList.contains('folder')) {
+                    const nestedList = targetFolder.querySelector('ul');
+                    const draggedItem = document.querySelector(`[data-file="${draggedFile}"]`);
+                    if (nestedList && draggedItem) {
+                        nestedList.appendChild(draggedItem);
+                    }
+                }
+            }
+
+            fileTree.querySelectorAll('li').forEach(item => {
                 item.addEventListener('click', () => {
                     currentFile = item.getAttribute('data-file');
                     fileContentEditor.value = files[currentFile];
                 });
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
             });
 
             fileContentEditor.addEventListener('input', () => {
@@ -136,16 +197,19 @@
                 const fileName = newFileNameInput.value.trim();
                 if (fileName && !files[fileName]) {
                     files[fileName] = '';
-                    const newFileItem = document.createElement('li');
-                    newFileItem.textContent = fileName;
-                    newFileItem.setAttribute('data-file', fileName);
-                    newFileItem.addEventListener('click', () => {
-                        currentFile = fileName;
-                        fileContentEditor.value = files[currentFile];
-                    });
-                    fileList.appendChild(newFileItem);
+                    const newFileItem = addFileToTree(fileName);
+                    fileTree.appendChild(newFileItem);
                     saveFileToCache(fileName, '');
                     newFileNameInput.value = '';
+                }
+            });
+
+            addFolderButton.addEventListener('click', () => {
+                const folderName = newFolderNameInput.value.trim();
+                if (folderName) {
+                    const newFolderItem = addFolderToTree(folderName);
+                    fileTree.appendChild(newFolderItem);
+                    newFolderNameInput.value = '';
                 }
             });
 
@@ -178,105 +242,105 @@
             }
 
             function getTranspiledJs(jsCode) {
-                if (jsPreprocessor.value === 'typescript') {
-                    if (!typeScriptLoaded) {
-                        loadTypeScript();
-                        return '';
-                    }
-                    try {
-                        return ts.transpile(jsCode);
-                    } catch (e) {
-                        console.error('TypeScript transpilation error:', e);
-                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
-                    }
-                }
-                return jsCode;
-            }
+if (jsPreprocessor.value === 'typescript') {
+if (!typeScriptLoaded) {
+loadTypeScript();
+return '';
+}
+try {
+return ts.transpile(jsCode);
+} catch (e) {
+console.error('TypeScript transpilation error:', e);
+return console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});;
+}
+}
+return jsCode;
+}
 
-            function getTranspiledCss(cssCode) {
-                if (cssPreprocessor.value === 'scss') {
-                    if (!scssLoaded) {
-                        loadSCSS();
-                        return '';
-                    }
-                    return new Promise((resolve, reject) => {
-                        Sass.compile(cssCode, (result) => {
-                            if (result.status === 0) {
-                                resolve(result.text);
-                            } else {
-                                console.error('SCSS transpilation error:', result.formatted);
-                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
-                            }
-                        });
+              function getTranspiledCss(cssCode) {
+            if (cssPreprocessor.value === 'scss') {
+                if (!scssLoaded) {
+                    loadSCSS();
+                    return '';
+                }
+                return new Promise((resolve, reject) => {
+                    Sass.compile(cssCode, (result) => {
+                        if (result.status === 0) {
+                            resolve(result.text);
+                        } else {
+                            console.error('SCSS transpilation error:', result.formatted);
+                            resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                        }
                     });
-                }
-                return Promise.resolve(cssCode);
-            }
-
-            async function generatePreviewContent() {
-                const html = files['index.html'];
-                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
-                const jsContent = getTranspiledJs(files['script.js']);
-                const js = `<script>${jsContent}\<\/script>`;
-
-                return `
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Preview</title>
-                        ${css}
-                    </head>
-                    <body>
-                        ${html}
-                        ${js}
-                    </body>
-                    </html>
-                `;
-            }
-
-            async function updatePreview() {
-                const completeContent = await generatePreviewContent();
-
-                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                previewDocument.open();
-                previewDocument.write(completeContent);
-                previewDocument.close();
-            }
-
-            async function openPreviewInNewTab() {
-                const completeContent = await generatePreviewContent();
-                const newWindow = window.open();
-                newWindow.document.open();
-                newWindow.document.write(completeContent);
-                newWindow.document.close();
-            }
-
-            // Initial call to display content on page load
-            updatePreview();
-        });
-
-        async function saveFileToCache(fileName, content) {
-            if ('caches' in window) {
-                const cache = await caches.open('jsfiddle-clone-files');
-                const response = new Response(content, {
-                    headers: { 'Content-Type': 'text/html' }
                 });
-                await cache.put(new Request(`/codep/${fileName}`, { cache: 'reload' }), response);
             }
+            return Promise.resolve(cssCode);
         }
 
-         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/codep/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
+        async function generatePreviewContent() {
+            const html = files['index.html'];
+            const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
+            const jsContent = getTranspiledJs(files['script.js']);
+            const js = `<script>${jsContent}\<\/script>`;
+
+            return `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Preview</title>
+                    ${css}
+                </head>
+                <body>
+                    ${html}
+                    ${js}
+                </body>
+                </html>
+            `;
         }
-    </script>
-    
-</body>
+
+        async function updatePreview() {
+            const completeContent = await generatePreviewContent();
+
+            const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            previewDocument.open();
+            previewDocument.write(completeContent);
+            previewDocument.close();
+        }
+
+        async function openPreviewInNewTab() {
+            const completeContent = await generatePreviewContent();
+            const newWindow = window.open();
+            newWindow.document.open();
+            newWindow.document.write(completeContent);
+            newWindow.document.close();
+        }
+
+        // Initial call to display content on page load
+        updatePreview();
+    });
+
+    async function saveFileToCache(fileName, content) {
+        if ('caches' in window) {
+            const cache = await caches.open('jsfiddle-clone-files');
+            const response = new Response(content, {
+                headers: { 'Content-Type': 'text/html' }
+            });
+            await cache.put(new Request(`/codep/${fileName}`, { cache: 'reload' }), response);
+        }
+    }
+
+     if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/codep/service-worker.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Service Worker registration failed:', error);
+            });
+    }
+</script>
+
+    </body>
 </html>
