@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSFiddle Clone</title>
     <style>
-        body {
+  body {
             display: flex;
             margin: 0;
             padding: 0;
@@ -33,6 +33,7 @@
         #sidebar li {
             padding: 10px;
             cursor: pointer;
+            position: relative; /* Needed to apply left offset */
         }
         #sidebar li:hover {
             background-color: #444;
@@ -106,40 +107,47 @@
 
             let currentFile = 'index.html';
 
-            function renderFileList(fileObj, container, parentPath = '') {
-                container.innerHTML = '';
-                Object.keys(fileObj).forEach(key => {
-                    const item = document.createElement('li');
-                    item.textContent = key;
-                    item.setAttribute('data-path', parentPath + '/' + key);
-                    item.draggable = true;
-                    item.addEventListener('click', () => {
-                        if (typeof fileObj[key] === 'string') {
-                            currentFile = parentPath + '/' + key;
-                            fileContentEditor.value = fileObj[key];
-                        }
-                    });
-                    item.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.setData('text/plain', parentPath + '/' + key);
-                    });
-                    item.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                    });
-                    item.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        const srcPath = e.dataTransfer.getData('text/plain');
-                        const destPath = parentPath + '/' + key;
-                        moveFile(srcPath, destPath);
-                        renderFileList(files, fileList);
-                    });
-                    container.appendChild(item);
-                    if (typeof fileObj[key] === 'object') {
-                        const subList = document.createElement('ul');
-                        container.appendChild(subList);
-                        renderFileList(fileObj[key], subList, parentPath + '/' + key);
-                    }
-                });
+           function renderFileList(fileObj, container, parentPath = '', level = 0) {
+    container.innerHTML = '';
+    Object.keys(fileObj).forEach(key => {
+        const item = document.createElement('li');
+        item.textContent = key;
+        item.setAttribute('data-path', parentPath + '/' + key);
+        item.setAttribute('data-level', level);
+        item.draggable = true;
+        item.addEventListener('click', () => {
+            if (typeof fileObj[key] === 'string') {
+                currentFile = parentPath + '/' + key;
+                fileContentEditor.value = fileObj[key];
             }
+        });
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', parentPath + '/' + key);
+        });
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const srcPath = e.dataTransfer.getData('text/plain');
+            const destPath = parentPath + '/' + key;
+            moveFile(srcPath, destPath);
+            renderFileList(files, fileList);
+        });
+        container.appendChild(item);
+        if (typeof fileObj[key] === 'object') {
+            const subList = document.createElement('ul');
+            container.appendChild(subList);
+            renderFileList(fileObj[key], subList, parentPath + '/' + key, level + 1);
+        }
+    });
+
+    // Apply CSS styles based on the nesting level
+    document.querySelectorAll('#file-list li').forEach(li => {
+        const level = parseInt(li.getAttribute('data-level'), 10);
+        li.style.left = `${level * 5}px`;
+    });
+}
 
             function moveFile(srcPath, destPath) {
                 const srcParts = srcPath.split('/');
