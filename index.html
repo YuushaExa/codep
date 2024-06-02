@@ -74,18 +74,20 @@
     </style>
 </head>
 <body>
-    <div id="sidebar">
-        <h2>Files</h2>
-        <ul id="file-tree">
-            <li data-file="index.html" draggable="true">index.html</li>
-            <li data-file="style.css" draggable="true">style.css</li>
-            <li data-file="script.js" draggable="true">script.js</li>
-        </ul>
-        <input type="text" id="new-file-name" placeholder="New file name">
-        <button id="add-file-button">Add File</button>
-        <input type="text" id="new-folder-name" placeholder="New folder name">
-        <button id="add-folder-button">Add Folder</button>
-    </div>
+<div id="sidebar">
+    <h2>Files</h2>
+    <ul id="file-tree">
+        <li class="folder" data-folder="root">
+            <span class="folder-name">Root</span>
+            <ul class="nested"></ul>
+        </li>
+    </ul>
+    <input type="text" id="new-file-name" placeholder="New file name">
+    <button id="add-file-button">Add File</button>
+    <input type="text" id="new-folder-name" placeholder="New folder name">
+    <button id="add-folder-button">Add Folder</button>
+</div>
+
     <div id="editor">
         <div id="controls">
             <label for="js-preprocessor">JavaScript Preprocessor:</label>
@@ -104,118 +106,104 @@
         <iframe id="preview" name="preview" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads allow-presentation" allow="accelerometer *; bluetooth *; camera *; encrypted-media *; display-capture *; geolocation *; gyroscope *; microphone *; midi *; clipboard-read *; clipboard-write *; web-share *; serial *; xr-spatial-tracking *" scrolling="auto" allowtransparency="true" allowpaymentrequest="true" allowfullscreen="true" class="result-iframe" loading="lazy"></iframe>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const files = {
-                'index.html': '',
-                'style.css': '',
-                'script.js': ''
-            };
+document.addEventListener('DOMContentLoaded', () => {
+    const files = {
+        'index.html': '',
+        'style.css': '',
+        'script.js': ''
+    };
 
-            const fileContentEditor = document.getElementById('file-content');
-            const fileTree = document.getElementById('file-tree');
-            const jsPreprocessor = document.getElementById('js-preprocessor');
-            const cssPreprocessor = document.getElementById('css-preprocessor');
-            const previewFrame = document.getElementById('preview');
-            const previewButton = document.getElementById('preview-button');
-            const newFileNameInput = document.getElementById('new-file-name');
-            const addFileButton = document.getElementById('add-file-button');
-            const newFolderNameInput = document.getElementById('new-folder-name');
-            const addFolderButton = document.getElementById('add-folder-button');
+    const fileContentEditor = document.getElementById('file-content');
+    const fileTree = document.getElementById('file-tree');
+    const jsPreprocessor = document.getElementById('js-preprocessor');
+    const cssPreprocessor = document.getElementById('css-preprocessor');
+    const previewFrame = document.getElementById('preview');
+    const previewButton = document.getElementById('preview-button');
+    const newFileNameInput = document.getElementById('new-file-name');
+    const addFileButton = document.getElementById('add-file-button');
+    const newFolderNameInput = document.getElementById('new-folder-name');
+    const addFolderButton = document.getElementById('add-folder-button');
 
-            let currentFile = 'index.html';
+    let currentFile = 'index.html';
 
-            function addFileToTree(fileName) {
-                const newFileItem = document.createElement('li');
-                newFileItem.textContent = fileName;
-                newFileItem.setAttribute('data-file', fileName);
-                newFileItem.setAttribute('draggable', 'true');
-                newFileItem.addEventListener('click', () => {
-                    currentFile = fileName;
-                    fileContentEditor.value = files[currentFile];
-                });
-                newFileItem.addEventListener('dragstart', handleDragStart);
-                newFileItem.addEventListener('dragover', handleDragOver);
-                newFileItem.addEventListener('drop', handleDrop);
-                return newFileItem;
+    function addFileToTree(fileName, parent) {
+        const newFileItem = document.createElement('li');
+        newFileItem.textContent = fileName;
+        newFileItem.setAttribute('data-file', fileName);
+        newFileItem.setAttribute('draggable', 'true');
+        newFileItem.addEventListener('click', () => {
+            currentFile = fileName;
+            fileContentEditor.value = files[currentFile];
+        });
+        newFileItem.addEventListener('dragstart', handleDragStart);
+        newFileItem.addEventListener('dragover', handleDragOver);
+        newFileItem.addEventListener('drop', handleDrop);
+        parent.appendChild(newFileItem);
+    }
+
+    function addFolderToTree(folderName, parent) {
+        const newFolderItem = document.createElement('li');
+        newFolderItem.innerHTML = `<span class="folder-name">${folderName}</span><ul class="nested"></ul>`;
+        newFolderItem.classList.add('folder');
+        newFolderItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const nestedList = newFolderItem.querySelector('.nested');
+            nestedList.style.display = nestedList.style.display === 'none' ? 'block' : 'none';
+        });
+        newFolderItem.addEventListener('dragover', handleDragOver);
+        newFolderItem.addEventListener('drop', handleDrop);
+        parent.appendChild(newFolderItem);
+    }
+
+    function handleDragStart(e) {
+        e.dataTransfer.setData('text/plain', e.target.getAttribute('data-file'));
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const draggedFile = e.dataTransfer.getData('text/plain');
+        const targetFolder = e.target.closest('.folder');
+        if (targetFolder) {
+            const nestedList = targetFolder.querySelector('.nested');
+            const draggedItem = document.querySelector(`[data-file="${draggedFile}"]`);
+            if (nestedList && draggedItem) {
+                nestedList.appendChild(draggedItem);
             }
+        }
+    }
 
-            function addFolderToTree(folderName) {
-                const newFolderItem = document.createElement('li');
-                newFolderItem.textContent = folderName;
-                newFolderItem.classList.add('folder');
-                const nestedList = document.createElement('ul');
-                newFolderItem.appendChild(nestedList);
-                newFolderItem.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    nestedList.style.display = nestedList.style.display === 'none' ? 'block' : 'none';
-                });
-                newFolderItem.addEventListener('dragover', handleDragOver);
-                newFolderItem.addEventListener('drop', handleDrop);
-                return newFolderItem;
-            }
+    fileContentEditor.addEventListener('input', () => {
+        files[currentFile] = fileContentEditor.value;
+        saveFileToCache(currentFile, fileContentEditor.value);
+        updatePreview();
+    });
 
-            function handleDragStart(e) {
-                e.dataTransfer.setData('text/plain', e.target.getAttribute('data-file'));
-            }
+    previewButton.addEventListener('click', openPreviewInNewTab);
 
-            function handleDragOver(e) {
-                e.preventDefault();
-            }
+    addFileButton.addEventListener('click', () => {
+        const fileName = newFileNameInput.value.trim();
+        if (fileName && !files[fileName]) {
+            files[fileName] = '';
+            addFileToTree(fileName, fileTree.querySelector('.folder[data-folder="root"] ul'));
+            saveFileToCache(fileName, '');
+            newFileNameInput.value = '';
+        }
+    });
 
-            function handleDrop(e) {
-                e.preventDefault();
-                const draggedFile = e.dataTransfer.getData('text/plain');
-                const targetFolder = e.target.tagName === 'LI' ? e.target : e.target.closest('li.folder');
-                if (targetFolder && targetFolder.classList.contains('folder')) {
-                    const nestedList = targetFolder.querySelector('ul');
-                    const draggedItem = document.querySelector(`[data-file="${draggedFile}"]`);
-                    if (nestedList && draggedItem) {
-                        nestedList.appendChild(draggedItem);
-                    }
-                }
-            }
+    addFolderButton.addEventListener('click', () => {
+        const folderName = newFolderNameInput.value.trim();
+        if (folderName) {
+            addFolderToTree(folderName, fileTree.querySelector('.folder[data-folder="root"] ul'));
+            newFolderNameInput.value = '';
+        }
+    });
 
-            fileTree.querySelectorAll('li').forEach(item => {
-                item.addEventListener('click', () => {
-                    currentFile = item.getAttribute('data-file');
-                    fileContentEditor.value = files[currentFile];
-                });
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragover', handleDragOver);
-                item.addEventListener('drop', handleDrop);
-            });
-
-            fileContentEditor.addEventListener('input', () => {
-                files[currentFile] = fileContentEditor.value;
-                saveFileToCache(currentFile, fileContentEditor.value);
-                updatePreview();
-            });
-
-            previewButton.addEventListener('click', openPreviewInNewTab);
-
-            addFileButton.addEventListener('click', () => {
-                const fileName = newFileNameInput.value.trim();
-                if (fileName && !files[fileName]) {
-                    files[fileName] = '';
-                    const newFileItem = addFileToTree(fileName);
-                    fileTree.appendChild(newFileItem);
-                    saveFileToCache(fileName, '');
-                    newFileNameInput.value = '';
-                }
-            });
-
-            addFolderButton.addEventListener('click', () => {
-                const folderName = newFolderNameInput.value.trim();
-                if (folderName) {
-                    const newFolderItem = addFolderToTree(folderName);
-                    fileTree.appendChild(newFolderItem);
-                    newFolderNameInput.value = '';
-                }
-            });
-
-            let typeScriptLoaded = false;
-            let scssLoaded = false;
-
+    let typeScriptLoaded = false;
+    let scssLoaded = false;
             function loadScript(src, callback) {
                 const script = document.createElement('script');
                 script.src = src;
