@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSFiddle Clone</title>
     <style>
-  body {
+        body {
             display: flex;
             margin: 0;
             padding: 0;
@@ -107,47 +107,47 @@
 
             let currentFile = 'index.html';
 
-           function renderFileList(fileObj, container, parentPath = '', level = 0) {
-    container.innerHTML = '';
-    Object.keys(fileObj).forEach(key => {
-        const item = document.createElement('li');
-        item.textContent = key;
-        item.setAttribute('data-path', parentPath + '/' + key);
-        item.setAttribute('data-level', level);
-        item.draggable = true;
-        item.addEventListener('click', () => {
-            if (typeof fileObj[key] === 'string') {
-                currentFile = parentPath + '/' + key;
-                fileContentEditor.value = fileObj[key];
-            }
-        });
-        item.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', parentPath + '/' + key);
-        });
-        item.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-        item.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const srcPath = e.dataTransfer.getData('text/plain');
-            const destPath = parentPath + '/' + key;
-            moveFile(srcPath, destPath);
-            renderFileList(files, fileList);
-        });
-        container.appendChild(item);
-        if (typeof fileObj[key] === 'object') {
-            const subList = document.createElement('ul');
-            container.appendChild(subList);
-            renderFileList(fileObj[key], subList, parentPath + '/' + key, level + 1);
-        }
-    });
+            function renderFileList(fileObj, container, parentPath = '', level = 0) {
+                container.innerHTML = '';
+                Object.keys(fileObj).forEach(key => {
+                    const item = document.createElement('li');
+                    item.textContent = key;
+                    item.setAttribute('data-path', parentPath + '/' + key);
+                    item.setAttribute('data-level', level);
+                    item.draggable = true;
+                    item.addEventListener('click', () => {
+                        if (typeof fileObj[key] === 'string') {
+                            currentFile = parentPath + '/' + key;
+                            fileContentEditor.value = fileObj[key];
+                        }
+                    });
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', parentPath + '/' + key);
+                    });
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                    });
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const srcPath = e.dataTransfer.getData('text/plain');
+                        const destPath = parentPath + '/' + key;
+                        moveFile(srcPath, destPath);
+                        renderFileList(files, fileList);
+                    });
+                    container.appendChild(item);
+                    if (typeof fileObj[key] === 'object') {
+                        const subList = document.createElement('ul');
+                        container.appendChild(subList);
+                        renderFileList(fileObj[key], subList, parentPath + '/' + key, level + 1);
+                    }
+                });
 
-    // Apply CSS styles based on the nesting level
-    document.querySelectorAll('#file-list li').forEach(li => {
-        const level = parseInt(li.getAttribute('data-level'), 10);
-        li.style.left = `${level * 5}px`;
-    });
-}
+                // Apply CSS styles based on the nesting level
+                document.querySelectorAll('#file-list li').forEach(li => {
+                    const level = parseInt(li.getAttribute('data-level'), 10);
+                    li.style.left = `${level * 5}px`;
+                });
+            }
 
             function moveFile(srcPath, destPath) {
                 const srcParts = srcPath.split('/');
@@ -204,7 +204,7 @@
             });
 
             fileContentEditor.addEventListener('input', () => {
-                const pathParts = currentFile.split('/');
+                const pathParts = currentFile.split('/').slice(1);
                 let currentFolder = files;
                 pathParts.forEach((part, index) => {
                     if (index === pathParts.length - 1) {
@@ -223,7 +223,7 @@
                 const css = files['style.css'];
                 const js = files['script.js'];
 
-             return `
+  return `
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
@@ -257,12 +257,11 @@
                 newWindow.document.close();
             }
 
-
             renderFileList(files, fileList);
             updatePreview();
         });
 
-                async function saveFileToCache(fileName, content) {
+        async function saveFileToCache(fileName, content) {
             if ('caches' in window) {
                 const cache = await caches.open('jsfiddle-clone-files');
                 const response = new Response(content, {
@@ -272,7 +271,7 @@
             }
         }
 
-         if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/codep/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
