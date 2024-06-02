@@ -63,7 +63,7 @@
         #controls {
             margin-bottom: 20px;
         }
-        #controls label, #controls select, #controls button {
+        #controls button {
             font-size: 16px;
             margin: 5px;
         }
@@ -73,25 +73,15 @@
     <div id="sidebar">
         <h2>Files</h2>
         <ul id="file-list">
-            <li data-file="index.html">index.html</li>
-            <li data-file="style.css">style.css</li>
-            <li data-file="script.js">script.js</li>
+            <!-- File and folder structure will be dynamically populated here -->
         </ul>
         <input type="text" id="new-file-name" placeholder="New file name">
         <button id="add-file-button">Add File</button>
+        <input type="text" id="new-folder-name" placeholder="New folder name">
+        <button id="add-folder-button">Add Folder</button>
     </div>
     <div id="editor">
         <div id="controls">
-            <label for="js-preprocessor">JavaScript Preprocessor:</label>
-            <select id="js-preprocessor">
-                <option value="none">None</option>
-                <option value="typescript">TypeScript</option>
-            </select>
-            <label for="css-preprocessor">CSS Preprocessor:</label>
-            <select id="css-preprocessor">
-                <option value="none">None</option>
-                <option value="scss">SCSS</option>
-            </select>
             <button id="preview-button">Preview</button>
         </div>
         <textarea id="file-content" placeholder="File content will appear here..."></textarea>
@@ -106,54 +96,126 @@
             };
 
             const fileContentEditor = document.getElementById('file-content');
-            const sidebarItems = document.querySelectorAll('#sidebar li');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
             const newFileNameInput = document.getElementById('new-file-name');
             const addFileButton = document.getElementById('add-file-button');
+            const newFolderNameInput = document.getElementById('new-folder-name');
+            const addFolderButton = document.getElementById('add-folder-button');
             const fileList = document.getElementById('file-list');
 
             let currentFile = 'index.html';
 
-            sidebarItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    currentFile = item.getAttribute('data-file');
-                    fileContentEditor.value = files[currentFile];
+            function renderFileList(fileObj, container, parentPath = '') {
+                container.innerHTML = '';
+                Object.keys(fileObj).forEach(key => {
+                    const item = document.createElement('li');
+                    item.textContent = key;
+                    item.setAttribute('data-path', parentPath + '/' + key);
+                    item.draggable = true;
+                    item.addEventListener('click', () => {
+                        if (typeof fileObj[key] === 'string') {
+                            currentFile = parentPath + '/' + key;
+                            fileContentEditor.value = fileObj[key];
+                        }
+                    });
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', parentPath + '/' + key);
+                    });
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                    });
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const srcPath = e.dataTransfer.getData('text/plain');
+                        const destPath = parentPath + '/' + key;
+                        moveFile(srcPath, destPath);
+                        renderFileList(files, fileList);
+                    });
+                    container.appendChild(item);
+                    if (typeof fileObj[key] === 'object') {
+                        const subList = document.createElement('ul');
+                        container.appendChild(subList);
+                        renderFileList(fileObj[key], subList, parentPath + '/' + key);
+                    }
                 });
+            }
+
+            function moveFile(srcPath, destPath) {
+                const srcParts = srcPath.split('/');
+                const destParts = destPath.split('/');
+                const srcFileName = srcParts.pop();
+                const destFolder = destParts.pop();
+
+                let srcParent = files;
+                for (const part of srcParts.slice(1)) {
+                    srcParent = srcParent[part];
+                }
+
+                let destParent = files;
+                for (const part of destParts.slice(1)) {
+                    destParent = destParent[part];
+                }
+
+                if (typeof destParent[destFolder] === 'object') {
+                    destParent[destFolder][srcFileName] = srcParent[srcFileName];
+                    delete srcParent[srcFileName];
+                }
+            }
+
+            addFileButton.addEventListener('click', () => {
+                const fileName = newFileNameInput.value.trim();
+                if (fileName) {
+                    const pathParts = fileName.split('/');
+                    let currentFolder = files;
+                    pathParts.forEach((part, index) => {
+                        if (index === pathParts.length - 1) {
+                            currentFolder[part] = '';
+                        } else {
+                            currentFolder[part] = currentFolder[part] || {};
+                            currentFolder = currentFolder[part];
+                        }
+                    });
+                    renderFileList(files, fileList);
+                    newFileNameInput.value = '';
+                }
+            });
+
+            addFolderButton.addEventListener('click', () => {
+                const folderName = newFolderNameInput.value.trim();
+                if (folderName) {
+                    const pathParts = folderName.split('/');
+                    let currentFolder = files;
+                    pathParts.forEach(part => {
+                        currentFolder[part] = currentFolder[part] || {};
+                        currentFolder = currentFolder[part];
+                    });
+                    renderFileList(files, fileList);
+                    newFolderNameInput.value = '';
+                }
             });
 
             fileContentEditor.addEventListener('input', () => {
-                files[currentFile] = fileContentEditor.value;
-                saveFileToCache(currentFile, fileContentEditor.value);
+                const pathParts = currentFile.split('/');
+                let currentFolder = files;
+                pathParts.forEach((part, index) => {
+                    if (index === pathParts.length - 1) {
+                        currentFolder[part] = fileContentEditor.value;
+                    } else {
+                        currentFolder = currentFolder[part];
+                    }
+                });
                 updatePreview();
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
 
-            addFileButton.addEventListener('click', () => {
-                const fileName = newFileNameInput.value.trim();
-                if (fileName && !files[fileName]) {
-                    files[fileName] = '';
-                    const newFileItem = document.createElement('li');
-                    newFileItem.textContent = fileName;
-                    newFileItem.setAttribute('data-file', fileName);
-                    newFileItem.addEventListener('click', () => {
-                        currentFile = fileName;
-                        fileContentEditor.value = files[currentFile];
-                    });
-                    fileList.appendChild(newFileItem);
-                    saveFileToCache(fileName, '');
-                    newFileNameInput.value = '';
-                }
-            });
-
             async function generatePreviewContent() {
                 const html = files['index.html'];
-                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
-                const jsContent = getTranspiledJs(files['script.js']);
-                const js = `<script>${jsContent}\<\/script>`;
+                const css = files['style.css'];
+                const js = files['script.js'];
 
-                return `
+                     return `
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
@@ -189,9 +251,11 @@
 
             // Initial call to display content on page load
             updatePreview();
+
+            renderFileList(files, fileList);
         });
 
-        async function saveFileToCache(fileName, content) {
+          async function saveFileToCache(fileName, content) {
             if ('caches' in window) {
                 const cache = await caches.open('jsfiddle-clone-files');
                 const response = new Response(content, {
@@ -211,6 +275,5 @@
                 });
         }
     </script>
-    
 </body>
 </html>
