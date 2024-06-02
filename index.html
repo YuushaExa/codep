@@ -33,7 +33,6 @@
         #sidebar li {
             padding: 10px;
             cursor: pointer;
-            position: relative; /* Needed to apply left offset */
         }
         #sidebar li:hover {
             background-color: #444;
@@ -64,7 +63,7 @@
         #controls {
             margin-bottom: 20px;
         }
-        #controls button {
+        #controls label, #controls select, #controls button {
             font-size: 16px;
             margin: 5px;
         }
@@ -74,15 +73,25 @@
     <div id="sidebar">
         <h2>Files</h2>
         <ul id="file-list">
-            <!-- File and folder structure will be dynamically populated here -->
+            <li data-file="index.html">index.html</li>
+            <li data-file="style.css">style.css</li>
+            <li data-file="script.js">script.js</li>
         </ul>
         <input type="text" id="new-file-name" placeholder="New file name">
         <button id="add-file-button">Add File</button>
-        <input type="text" id="new-folder-name" placeholder="New folder name">
-        <button id="add-folder-button">Add Folder</button>
     </div>
     <div id="editor">
         <div id="controls">
+            <label for="js-preprocessor">JavaScript Preprocessor:</label>
+            <select id="js-preprocessor">
+                <option value="none">None</option>
+                <option value="typescript">TypeScript</option>
+            </select>
+            <label for="css-preprocessor">CSS Preprocessor:</label>
+            <select id="css-preprocessor">
+                <option value="none">None</option>
+                <option value="scss">SCSS</option>
+            </select>
             <button id="preview-button">Preview</button>
         </div>
         <textarea id="file-content" placeholder="File content will appear here..."></textarea>
@@ -97,133 +106,120 @@
             };
 
             const fileContentEditor = document.getElementById('file-content');
+            const sidebarItems = document.querySelectorAll('#sidebar li');
+            const jsPreprocessor = document.getElementById('js-preprocessor');
+            const cssPreprocessor = document.getElementById('css-preprocessor');
             const previewFrame = document.getElementById('preview');
             const previewButton = document.getElementById('preview-button');
             const newFileNameInput = document.getElementById('new-file-name');
             const addFileButton = document.getElementById('add-file-button');
-            const newFolderNameInput = document.getElementById('new-folder-name');
-            const addFolderButton = document.getElementById('add-folder-button');
             const fileList = document.getElementById('file-list');
 
             let currentFile = 'index.html';
 
-            function renderFileList(fileObj, container, parentPath = '', level = 0) {
-                container.innerHTML = '';
-                Object.keys(fileObj).forEach(key => {
-                    const item = document.createElement('li');
-                    item.textContent = key;
-                    item.setAttribute('data-path', parentPath + '/' + key);
-                    item.setAttribute('data-level', level);
-                    item.draggable = true;
-                    item.addEventListener('click', () => {
-                        if (typeof fileObj[key] === 'string') {
-                            currentFile = parentPath + '/' + key;
-                            fileContentEditor.value = fileObj[key];
-                        }
-                    });
-                    item.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.setData('text/plain', parentPath + '/' + key);
-                    });
-                    item.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                    });
-                    item.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        const srcPath = e.dataTransfer.getData('text/plain');
-                        const destPath = parentPath + '/' + key;
-                        moveFile(srcPath, destPath);
-                        renderFileList(files, fileList);
-                    });
-                    container.appendChild(item);
-                    if (typeof fileObj[key] === 'object') {
-                        const subList = document.createElement('ul');
-                        container.appendChild(subList);
-                        renderFileList(fileObj[key], subList, parentPath + '/' + key, level + 1);
-                    }
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    currentFile = item.getAttribute('data-file');
+                    fileContentEditor.value = files[currentFile];
                 });
-
-                // Apply CSS styles based on the nesting level
-                document.querySelectorAll('#file-list li').forEach(li => {
-                    const level = parseInt(li.getAttribute('data-level'), 10);
-                    li.style.left = `${level * 5}px`;
-                });
-            }
-
-            function moveFile(srcPath, destPath) {
-                const srcParts = srcPath.split('/');
-                const destParts = destPath.split('/');
-                const srcFileName = srcParts.pop();
-                const destFolder = destParts.pop();
-
-                let srcParent = files;
-                for (const part of srcParts.slice(1)) {
-                    srcParent = srcParent[part];
-                }
-
-                let destParent = files;
-                for (const part of destParts.slice(1)) {
-                    destParent = destParent[part];
-                }
-
-                if (typeof destParent[destFolder] === 'object') {
-                    destParent[destFolder][srcFileName] = srcParent[srcFileName];
-                    delete srcParent[srcFileName];
-                }
-            }
-
-            addFileButton.addEventListener('click', () => {
-                const fileName = newFileNameInput.value.trim();
-                if (fileName) {
-                    const pathParts = fileName.split('/');
-                    let currentFolder = files;
-                    pathParts.forEach((part, index) => {
-                        if (index === pathParts.length - 1) {
-                            currentFolder[part] = '';
-                        } else {
-                            currentFolder[part] = currentFolder[part] || {};
-                            currentFolder = currentFolder[part];
-                        }
-                    });
-                    renderFileList(files, fileList);
-                    newFileNameInput.value = '';
-                }
-            });
-
-            addFolderButton.addEventListener('click', () => {
-                const folderName = newFolderNameInput.value.trim();
-                if (folderName) {
-                    const pathParts = folderName.split('/');
-                    let currentFolder = files;
-                    pathParts.forEach(part => {
-                        currentFolder[part] = currentFolder[part] || {};
-                        currentFolder = currentFolder[part];
-                    });
-                    renderFileList(files, fileList);
-                    newFolderNameInput.value = '';
-                }
             });
 
             fileContentEditor.addEventListener('input', () => {
-                const pathParts = currentFile.split('/').slice(1);
-                let currentFolder = files;
-                pathParts.forEach((part, index) => {
-                    if (index === pathParts.length - 1) {
-                        currentFolder[part] = fileContentEditor.value;
-                    } else {
-                        currentFolder = currentFolder[part];
-                    }
-                });
+                files[currentFile] = fileContentEditor.value;
+                saveFileToCache(currentFile, fileContentEditor.value);
                 updatePreview();
             });
 
             previewButton.addEventListener('click', openPreviewInNewTab);
 
+            addFileButton.addEventListener('click', () => {
+                const fileName = newFileNameInput.value.trim();
+                if (fileName && !files[fileName]) {
+                    files[fileName] = '';
+                    const newFileItem = document.createElement('li');
+                    newFileItem.textContent = fileName;
+                    newFileItem.setAttribute('data-file', fileName);
+                    newFileItem.addEventListener('click', () => {
+                        currentFile = fileName;
+                        fileContentEditor.value = files[currentFile];
+                    });
+                    fileList.appendChild(newFileItem);
+                    saveFileToCache(fileName, '');
+                    newFileNameInput.value = '';
+                }
+            });
+
+            let typeScriptLoaded = false;
+            let scssLoaded = false;
+
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
+            }
+
+            function loadTypeScript() {
+                if (!typeScriptLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/typescript/4.5.5/typescript.min.js", () => {
+                        typeScriptLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function loadSCSS() {
+                if (!scssLoaded) {
+                    loadScript("https://cdnjs.cloudflare.com/ajax/libs/sass.js/0.11.1/sass.sync.min.js", () => {
+                        scssLoaded = true;
+                        updatePreview();
+                    });
+                }
+            }
+
+            function getTranspiledJs(jsCode) {
+                if (jsPreprocessor.value === 'typescript') {
+                    if (!typeScriptLoaded) {
+                        loadTypeScript();
+                        return '';
+                    }
+                    try {
+                        return ts.transpile(jsCode);
+                    } catch (e) {
+                        console.error('TypeScript transpilation error:', e);
+                        return `console.error('TypeScript transpilation error:', ${JSON.stringify(e.message)});`;
+                    }
+                }
+                return jsCode;
+            }
+
+            function getTranspiledCss(cssCode) {
+                if (cssPreprocessor.value === 'scss') {
+                    if (!scssLoaded) {
+                        loadSCSS();
+                        return '';
+                    }
+                    return new Promise((resolve, reject) => {
+                        Sass.compile(cssCode, (result) => {
+                            if (result.status === 0) {
+                                resolve(result.text);
+                            } else {
+                                console.error('SCSS transpilation error:', result.formatted);
+                                resolve(`/* SCSS transpilation error: ${result.formatted} */`);
+                            }
+                        });
+                    });
+                }
+                return Promise.resolve(cssCode);
+            }
+
             async function generatePreviewContent() {
                 const html = files['index.html'];
-                const css = files['style.css'];
-                const js = files['script.js'];
+                const css = `<style>${await getTranspiledCss(files['style.css'])}</style>`;
+                const jsContent = getTranspiledJs(files['script.js']);
+                const js = `<script>${jsContent}\<\/script>`;
 
-  return `
+                return `
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
@@ -257,7 +253,7 @@
                 newWindow.document.close();
             }
 
-            renderFileList(files, fileList);
+            // Initial call to display content on page load
             updatePreview();
         });
 
@@ -271,7 +267,7 @@
             }
         }
 
-        if ('serviceWorker' in navigator) {
+         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/codep/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
@@ -281,5 +277,6 @@
                 });
         }
     </script>
+    
 </body>
 </html>
