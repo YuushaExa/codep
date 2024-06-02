@@ -215,7 +215,7 @@
                 const css = files['style.css'];
                 const js = files['script.js'];
 
-                     return `
+             return `
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
@@ -249,13 +249,12 @@
                 newWindow.document.close();
             }
 
-            // Initial call to display content on page load
-            updatePreview();
 
             renderFileList(files, fileList);
+            updatePreview();
         });
 
-          async function saveFileToCache(fileName, content) {
+                async function saveFileToCache(fileName, content) {
             if ('caches' in window) {
                 const cache = await caches.open('jsfiddle-clone-files');
                 const response = new Response(content, {
